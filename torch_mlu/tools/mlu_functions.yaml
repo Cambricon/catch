@@ -1,0 +1,3570 @@
+
+# Be careful!! Can not share memory because of MLU layout, currently only used by DDP
+- name: set_storage_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::set_.source_Storage_storage_offset(Tensor(a!) self, Storage source, int storage_offset, int[] size, int[] stride=[]) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: source
+    type: c10::Storage
+  - name: storage_offset
+    type: int64_t
+  - name: size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  return_type: at::Tensor &
+
+- name: as_strided
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::as_strided(Tensor(a) self, int[] size, int[] stride, int? storage_offset=None) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: storage_offset
+    type: c10::optional<int64_t>
+  return_type: at::Tensor
+
+- name: add
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: true_divide
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::true_divide.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: true_divide_inplace
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::true_divide_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: true_divide_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::true_divide.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: addmm
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::addmm(Tensor self, Tensor mat1, Tensor mat2, *, Scalar beta=1, Scalar alpha=1) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: mat1
+    type: const at::Tensor &
+  - name: mat2
+    type: const at::Tensor &
+  - name: beta
+    type: at::Scalar
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: addmm_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::addmm_(Tensor(a!) self, Tensor mat1, Tensor mat2, *, Scalar beta=1, Scalar alpha=1) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: mat1
+    type: const at::Tensor &
+  - name: mat2
+    type: const at::Tensor &
+  - name: beta
+    type: at::Scalar
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: addmm_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::addmm.out(Tensor self, Tensor mat1, Tensor mat2, *, Scalar beta=1, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: mat1
+    type: const at::Tensor &
+  - name: mat2
+    type: const at::Tensor &
+  - name: beta
+    type: at::Scalar
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: any
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::any.dim(Tensor self, int dim, bool keepdim=False) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: const int64_t
+  - name: keepdim
+    type: const bool
+  return_type: at::Tensor
+
+- name: any
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::any(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: ceil_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ceil.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: max
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: max
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max.other(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: max_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: max
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: const int64_t
+  - name: keepdim
+    type: const bool
+  return_type: std::tuple<at::Tensor, at::Tensor>
+
+- name: max_out_dim_max
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max.dim_max(Tensor self, int dim, bool keepdim=False, *, Tensor(a!) max, Tensor(b!) max_values) -> (Tensor(a!) values, Tensor(b!) indices)
+  arguments:
+  - name: max
+    type: at::Tensor &
+  - name: max_values
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: keepdim
+    type: bool
+  return_type: std::tuple<at::Tensor &, at::Tensor &>
+
+- name: argmax
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::argmax(Tensor self, int? dim=None, bool keepdim=False) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: c10::optional<int64_t>
+    default_value: =c10::nullopt
+  - name: keepdim
+    type: bool
+    default_value: =false
+  return_type: at::Tensor
+
+- name: min
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::min(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: min
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::min.other(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: min_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::min.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: min
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::min.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: const int64_t
+  - name: keepdim
+    type: const bool
+  return_type: std::tuple<at::Tensor, at::Tensor>
+
+- name: topk
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::topk(Tensor self, int k, int dim=-1, bool largest=True, bool sorted=True) -> (Tensor values, Tensor indices)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: k
+    type: int64_t
+  - name: dim
+    type: int64_t
+  - name: largest
+    type: bool
+  - name: sorted
+    type: bool
+  return_type: std::tuple<at::Tensor, at::Tensor>
+
+- name: topk_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::topk.values(Tensor self, int k, int dim=-1, bool largest=True, bool sorted=True, *, Tensor(a!) values, Tensor(b!) indices) ->(Tensor(a!) values, Tensor(b!) indices)
+  arguments:
+  - name: values
+    type: at::Tensor &
+  - name: indices
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: k
+    type: int64_t
+  - name: dim
+    type: int64_t
+  - name: largest
+    type: bool
+  - name: sorted
+    type: bool
+  return_type: std::tuple<at::Tensor&, at::Tensor&>
+
+- name: sort
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sort(Tensor self, int dim=-1, bool descending=False) -> (Tensor values, Tensor indices)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: const int64_t
+  - name: descending
+    type: const bool
+  return_type: std::tuple<at::Tensor, at::Tensor>
+
+- name: sort_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sort.values(Tensor self, int dim=-1, bool descending=False, *, Tensor(a!) values, Tensor(b!) indices) -> (Tensor(a!) values, Tensor(b!) indices)
+  arguments:
+  - name: values
+    type: at::Tensor &
+  - name: indices
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: const int64_t
+  - name: descending
+    type: const bool
+  return_type: std::tuple<at::Tensor &, at::Tensor &>
+
+- name: add
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::add.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: add_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::add_.Scalar(Tensor(a!) self, Scalar other, Scalar alpha=1) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: add_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: copy_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::copy_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: src
+    type: const at::Tensor &
+  - name: non_blocking
+    type: bool
+  return_type: at::Tensor &
+
+- name: sub
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sub.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: sub
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sub.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: sub_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sub_.Scalar(Tensor(a!) self, Scalar other, Scalar alpha=1) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor&
+
+- name: sub_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sub_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor&
+
+- name: empty
+  use_mlu_dispatcher: unboxed_only
+  derived_type: no
+  schema_string: aten::empty.memory_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor
+  arguments:
+  - name: size
+    type: at::IntArrayRef
+  - name: options
+    type: const at::TensorOptions &
+  - name: memory_format
+    type: c10::optional<at::MemoryFormat>
+  return_type: at::Tensor
+
+- name: mul
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mul.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: mul
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mul.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: mul_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mul_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: mul_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mul_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: mul_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mul.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: div
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::div.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: div
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::div.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: div_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::div_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: div_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::div_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: div_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::div.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: view
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::view(Tensor(a) self, int[] size) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: size
+    type: at::IntArrayRef
+  return_type: at::Tensor
+
+- name: avg_pool2d
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::avg_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: kernel_size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: ceil_mode
+    type: bool
+  - name: count_include_pad
+    type: bool
+  - name: divisor_override
+    type: c10::optional<int64_t>
+  return_type: at::Tensor
+
+- name: avg_pool3d
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::avg_pool3d(Tensor self, int[3] kernel_size, int[3] stride=[], int[3] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: kernel_size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: ceil_mode
+    type: bool
+  - name: count_include_pad
+    type: bool
+  - name: divisor_override
+    type: c10::optional<int64_t>
+  return_type: at::Tensor
+
+- name: max_pool3d_with_indices_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max_pool3d_with_indices_backward(Tensor grad_output, Tensor self, int[3] kernel_size, int[3] stride, int[3] padding, int[3] dilation, bool ceil_mode, Tensor indices) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: kernel_size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: dilation
+    type: at::IntArrayRef
+  - name: ceil_mode
+    type: bool
+  - name: indices
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: max_pool2d_with_indices
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max_pool2d_with_indices(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> (Tensor, Tensor)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: kernel_size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: dilation
+    type: at::IntArrayRef
+  - name: ceil_mode
+    type: bool
+  return_type: std::tuple<at::Tensor,at::Tensor>
+
+- name: max_pool3d_with_indices
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max_pool3d_with_indices(Tensor self, int[3] kernel_size, int[3] stride=[], int[3] padding=0, int[3] dilation=1, bool ceil_mode=False) -> (Tensor, Tensor)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: kernel_size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: dilation
+    type: at::IntArrayRef
+  - name: ceil_mode
+    type: bool
+  return_type: std::tuple<at::Tensor, at::Tensor>
+
+- name: adaptive_avg_pool2d_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::adaptive_avg_pool2d.out(Tensor self, int[2] output_size, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  return_type: at::Tensor &
+
+- name: _adaptive_avg_pool2d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_adaptive_avg_pool2d_backward(Tensor grad_output, Tensor self) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: _adaptive_avg_pool2d
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_adaptive_avg_pool2d(Tensor self, int[2] output_size) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  return_type: at::Tensor
+
+- name: adaptive_max_pool2d
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::adaptive_max_pool2d(Tensor self, int[2] output_size) -> (Tensor, Tensor)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  return_type: std::tuple<at::Tensor,at::Tensor>
+
+- name: adaptive_max_pool2d_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::adaptive_max_pool2d.out(Tensor self, int[2] output_size, *, Tensor(a!) out, Tensor(b!) indices) -> (Tensor(a!), Tensor(b!))
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: indices
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  return_type: std::tuple<at::Tensor &,at::Tensor &>
+
+- name: adaptive_max_pool2d_backward_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::adaptive_max_pool2d_backward.grad_input(Tensor grad_output, Tensor self, Tensor indices, *, Tensor(a!) grad_input) -> Tensor(a!)
+  arguments:
+  - name: grad_input
+    type: at::Tensor &
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: indices
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: adaptive_max_pool2d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::adaptive_max_pool2d_backward(Tensor grad_output, Tensor self, Tensor indices) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: indices
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: view
+  use_mlu_dispatcher: custom
+  derived_type: cnnl
+  schema_string: torch_mlu::view
+  arguments:
+  - name: input
+    type: const at::Tensor &
+  - name: dtype
+    type: c10::ScalarType
+  return_type: at::Tensor
+
+- name: linear
+  use_mlu_dispatcher: custom
+  derived_type: cnnl
+  schema_string: torch_mlu::linear
+  arguments:
+  - name: input
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: bias
+    type: const at::Tensor &
+  - name: q_scale
+    type: const at::Tensor &
+  - name: q_mode
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: conv2d
+  use_mlu_dispatcher: custom
+  derived_type: cnnl
+  schema_string: torch_mlu::conv2d
+  arguments:
+  - name: input
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: bias
+    type: const at::Tensor &
+  - name: padding
+    type: torch::List<int64_t>
+  - name: stride
+    type: torch::List<int64_t>
+  - name: dilation
+    type: torch::List<int64_t>
+  - name: groups
+    type: int64_t
+  - name: q_scale
+    type: const at::Tensor &
+  - name: q_mode
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: native_batch_norm
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: "aten::native_batch_norm(Tensor input, Tensor? weight, Tensor? bias, Tensor? running_mean, Tensor? running_var, bool training, float momentum, float eps) -> (Tensor, Tensor, Tensor)"
+  arguments:
+  - name: input
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: bias
+    type: const at::Tensor &
+  - name: running_mean
+    type: const at::Tensor &
+  - name: running_var
+    type: const at::Tensor &
+  - name: training
+    type: bool
+  - name: momentum
+    type: double
+  - name: eps
+    type: double
+  return_type: std::tuple<at::Tensor, at::Tensor, at::Tensor>
+
+- name: expand
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::expand(Tensor(a) self, int[] size, *, bool implicit=False) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: size
+    type: at::IntArrayRef
+  - name: implicit
+    type: bool
+  return_type: at::Tensor
+
+- name: floor_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::floor.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: mean_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mean.out(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: at::IntArrayRef
+  - name: keepdim
+    type: bool
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor &
+
+- name: mean
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mean.dim(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: at::IntArrayRef
+  - name: keepdim
+    type: bool
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: mean
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mean(Tensor self, *, ScalarType? dtype=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: norm
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::norm.ScalarOpt_dim(Tensor self, Scalar? p, int[1] dim, bool keepdim=False) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: p
+    type: at::optional<at::Scalar>
+  - name: dim
+    type: at::IntArrayRef
+  - name: keepdim
+    type: bool
+  return_type: at::Tensor
+
+- name: norm
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::norm.Scalar(Tensor self, Scalar p=2) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: p
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: norm
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::norm.ScalarOpt_dim_dtype(Tensor self, Scalar? p, int[1] dim, bool keepdim, *, ScalarType dtype) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: p
+    type: at::optional<at::Scalar>
+  - name: dim
+    type: at::IntArrayRef
+  - name: keepdim
+    type: bool
+  - name: dtype
+    type: at::ScalarType
+  return_type: at::Tensor
+
+- name: _unique2
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_unique2(Tensor self, bool sorted=True, bool return_inverse=False, bool return_counts=False) -> (Tensor, Tensor, Tensor)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: sorted
+    type: bool
+  - name: return_inverse
+    type: bool
+  - name: return_counts
+    type: bool
+  return_type: std::tuple<at::Tensor, at::Tensor, at::Tensor>
+
+- name: transpose
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::transpose.int(Tensor(a) self, int dim0, int dim1) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim0
+    type: int64_t
+  - name: dim1
+    type: int64_t
+  return_type: at::Tensor
+
+- name: upsample_nearest2d
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::upsample_nearest2d(Tensor self, int[2] output_size, float? scales_h=None, float? scales_w=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  - name: scales_h
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  - name: scales_w
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: upsample_nearest2d_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::upsample_nearest2d.out(Tensor self, int[2] output_size, float? scales_h=None, float? scales_w=None, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  - name: scales_h
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  - name: scales_w
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  return_type: at::Tensor &
+
+- name: upsample_nearest2d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::upsample_nearest2d_backward(Tensor grad_output, int[2] output_size, int[4] input_size, float? scales_h=None, float? scales_w=None) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  - name: input_size
+    type: at::IntArrayRef
+  - name: scales_h
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  - name: scales_w
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: upsample_bilinear2d
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::upsample_bilinear2d(Tensor self, int[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  - name: align_corners
+    type: bool
+  - name: scales_h
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  - name: scales_w
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: upsample_bilinear2d_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::upsample_bilinear2d.out(Tensor self, int[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None , *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  - name: align_corners
+    type: bool
+  - name: scales_h
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  - name: scales_w
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  return_type: at::Tensor &
+
+- name: upsample_bilinear2d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::upsample_bilinear2d_backward(Tensor grad_output, int[2] output_size, int[4] input_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  - name: input_size
+    type: at::IntArrayRef
+  - name: align_corners
+    type: bool
+  - name: scales_h
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  - name: scales_w
+    type: c10::optional<double>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: sigmoid
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sigmoid(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: sigmoid_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sigmoid_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: sigmoid_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sigmoid_backward(Tensor grad_output, Tensor output) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: output
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: repeat
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::repeat(Tensor self, int[] repeats) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: repeats
+    type: at::IntArrayRef
+  return_type: at::Tensor
+
+- name: round
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::round(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: round_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::round_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: round_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::round.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: sqrt
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sqrt(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: sqrt_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sqrt_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: ge
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ge.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: ge
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ge.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: ge_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ge_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: ge_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ge_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: ge_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ge.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: ge_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ge.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: le
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::le.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: le
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::le.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: le_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::le_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: le_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::le_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: le_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::le.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: le_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::le.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: neg
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::neg(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: neg_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::neg.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: log_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::log.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: log2_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::log2.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: log10_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::log10.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: log_softmax
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_log_softmax(Tensor self, int dim, bool half_to_float) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: half_to_float
+    type: bool
+  return_type: at::Tensor
+
+- name: threshold
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::threshold(Tensor self, Scalar threshold, Scalar value) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: threshold
+    type: at::Scalar
+  - name: value
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: threshold_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::threshold_(Tensor(a!) self, Scalar threshold, Scalar value) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: threshold
+    type: at::Scalar
+  - name: value
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: threshold_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::threshold.out(Tensor self, Scalar threshold, Scalar value, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: threshold
+    type: at::Scalar
+  - name: value
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: threshold_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::threshold_backward(Tensor grad_output, Tensor self, Scalar threshold) -> Tensor
+  arguments:
+  - name: grad
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: threshold
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: softplus
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::softplus(Tensor self, Scalar beta=1, Scalar threshold=20) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: beta
+    type: at::Scalar
+  - name: threshold
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: softplus_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::softplus_backward(Tensor grad_output, Tensor self, Scalar beta, Scalar threshold, Tensor output) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: beta
+    type: at::Scalar
+  - name: threshold
+    type: at::Scalar
+  - name: output
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: relu
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::relu(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: relu_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::relu_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: tanh
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::tanh(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: tanh_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::tanh_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: tanh_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::tanh_backward(Tensor grad_output, Tensor output) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: output
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: gelu
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gelu(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: gelu_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gelu_backward(Tensor grad, Tensor self) -> Tensor
+  arguments:
+  - name: grad
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: hardtanh
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::hardtanh(Tensor self, Scalar min_val=-1, Scalar max_val=1) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: min_val
+    type: at::Scalar
+  - name: max_val
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: hardtanh_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::hardtanh_backward(Tensor grad_output, Tensor self, Scalar min_val, Scalar max_val) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor&
+  - name: self
+    type: const at::Tensor&
+  - name: min_val
+    type: at::Scalar
+  - name: max_val
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: hardtanh_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::hardtanh_(Tensor(a!) self, Scalar min_val=-1, Scalar max_val=1) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: min_val
+    type: at::Scalar
+  - name: max_val
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: cat
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::cat(Tensor[] tensors, int dim=0) -> Tensor
+  arguments:
+  - name: tensors
+    type: at::TensorList
+  - name: dim
+    type: int64_t
+  return_type: at::Tensor
+
+- name: cat_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::cat.out(Tensor[] tensors, int dim=0, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor&
+  - name: tensors
+    type: at::TensorList
+  - name: dim
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: stack
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::stack(Tensor[] tensors, int dim=0) -> Tensor
+  arguments:
+  - name: tensors
+    type: at::TensorList
+  - name: dim
+    type: int64_t
+  return_type: at::Tensor
+
+- name: stack_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::stack.out(Tensor[] tensors, int dim=0, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: tensors
+    type: at::TensorList
+  - name: dim
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: slice
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::slice.Tensor(Tensor(a) self, int dim=0, int start=0, int end=9223372036854775807, int step=1) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: start
+    type: int64_t
+  - name: end
+    type: int64_t
+  - name: step
+    type: int64_t
+  return_type: at::Tensor
+
+- name: abs
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::abs(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: abs_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::abs_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: abs_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::abs.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: prod
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::prod(Tensor self, *, ScalarType? dtype=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: prod
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::prod.dim_int(Tensor self, int dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: keepdim
+    type: bool
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: prod_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::prod.int_out(Tensor self, int dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: keepdim
+    type: bool
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor &
+
+- name: ne_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ne_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: ne_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ne_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: ne_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ne.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: ne_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ne.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: ne
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ne.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: ne
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::ne.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: gt_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gt_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: gt_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gt_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: gt_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gt.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: gt_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: gt
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gt.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: gt
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gt.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: bitwise_and_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::bitwise_and.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: bitwise_and_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::bitwise_and.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: select
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::select.int(Tensor(a) self, int dim, int index) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: index
+    type: int64_t
+  return_type: at::Tensor
+
+- name: squeeze
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::squeeze.dim(Tensor(a) self, int dim) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  return_type: at::Tensor
+
+- name: squeeze
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::squeeze(Tensor(a) self) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: squeeze_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::squeeze_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: squeeze_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::squeeze_.dim(Tensor(a!) self, int dim) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: dim
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: unsqueeze
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::unsqueeze(Tensor(a) self, int dim) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  return_type: at::Tensor
+
+- name: unsqueeze_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::unsqueeze_(Tensor(a!) self, int dim) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: dim
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: permute
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::permute(Tensor(a) self, int[] dims) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dims
+    type: at::IntArrayRef
+  return_type: at::Tensor
+
+- name: pow
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::pow.Tensor_Scalar(Tensor self, Scalar exponent) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: exponent
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: pow
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::pow.Tensor_Tensor(Tensor self, Tensor exponent) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: exponent
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: pow
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::pow.Scalar(Scalar self, Tensor exponent) -> Tensor
+  arguments:
+  - name: self
+    type: at::Scalar
+  - name: exponent
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: pow_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::pow_.Scalar(Tensor(a!) self, Scalar exponent) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: exponent
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: pow_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::pow_.Tensor(Tensor(a!) self, Tensor exponent) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: exponent
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: _softmax
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_softmax(Tensor self, int dim, bool half_to_float) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: half_to_float
+    type: bool
+  return_type: at::Tensor
+
+- name: leaky_relu
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::leaky_relu(Tensor self, Scalar negative_slope=0.01) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: negative_slope
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: leaky_relu_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::leaky_relu_(Tensor(a!) self, Scalar negative_slope=0.01) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: negative_slope
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: leaky_relu_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::leaky_relu.out(Tensor self, Scalar negative_slope=0.01, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: negative_slope
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: leaky_relu_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::leaky_relu_backward(Tensor grad_output, Tensor self, Scalar negative_slope, bool self_is_result) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: negative_slope
+    type: at::Scalar
+  - name: self_is_result
+    type: bool
+  return_type: at::Tensor
+
+- name: lt
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::lt.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: lt
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::lt.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: lt_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::lt_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: lt_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::lt_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: lt_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::lt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: lt_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::lt.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: linspace
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::linspace(Scalar start, Scalar end, int steps=100, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+  arguments:
+  - name: start
+    type: at::Scalar
+  - name: end
+    type: at::Scalar
+  - name: steps
+    type: int64_t
+  - name: options
+    type: const at::TensorOptions &
+  return_type: at::Tensor
+
+- name: linspace_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::linspace.out(Scalar start, Scalar end, int steps=100, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: start
+    type: at::Scalar
+  - name: end
+    type: at::Scalar
+  - name: steps
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: eq
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::eq.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: eq
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::eq.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: eq_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::eq_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: eq_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::eq_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: eq_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::eq.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: eq_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::eq.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: exp
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::exp(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: exp_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::exp_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: exp_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::exp.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+
+- name: matmul
+  use_mlu_dispatcher: unboxed_only
+  derived_type: no
+  schema_string: aten::matmul(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: mm
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mm(Tensor self, Tensor mat2) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: mat2
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: mm_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mm.out(Tensor self, Tensor mat2, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: mat2
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: bmm
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::bmm(Tensor self, Tensor mat2) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: mat2
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: sum
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sum(Tensor self, *, ScalarType? dtype=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: sum
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sum.dim_IntList(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: at::IntArrayRef
+  - name: keepdim
+    type: bool
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: all
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::all.dim(Tensor self, int dim, bool keepdim=False) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: keepdim
+    type: bool
+  return_type: at::Tensor
+
+- name: all_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::all.out(Tensor self, int dim, bool keepdim=False, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: keepdim
+    type: bool
+  return_type: at::Tensor &
+
+- name: all
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::all(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: reciprocal
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::reciprocal(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: reciprocal_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::reciprocal_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: reciprocal_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::reciprocal.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+  # equal operation can not be implemented by mlu, cpu operation is used.
+  # This op is used to compile graph in jit, no forward. Thus, this op can't use as normal op.
+- name: equal
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::equal(Tensor self, Tensor other) -> bool
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: bool
+
+# the feature of shared storage of this op cannot be fully supported by MLU currently,
+# be careful if you want to use this op
+- name: resize_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::resize_(Tensor(a!) self, int[] size, *, MemoryFormat? memory_format=None) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: size
+    type: at::IntArrayRef
+  - name: memory_format
+    type: c10::optional<c10::MemoryFormat>
+    default_value: =c10::nullopt
+  return_type: at::Tensor &
+
+- name: isfinite
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::isfinite(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: zeros_like
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::zeros_like(Tensor self, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: options
+    type: const at::TensorOptions &
+    default_value: ={}
+  - name: memory_format
+    type: c10::optional<c10::MemoryFormat>
+    default_value: =c10::nullopt
+  return_type: at::Tensor
+
+- name: nonzero
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::nonzero(Tensor self) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: nonzero_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::nonzero.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: index_select
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::index_select(Tensor self, int dim, Tensor index) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: index
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: index_select_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::index_select.out(Tensor self, int dim, Tensor index, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: index
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: gather
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gather(Tensor self, int dim, Tensor index, *, bool sparse_grad=False) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: index
+    type: const at::Tensor &
+  - name: sparse_grad
+    type: bool
+  return_type: at::Tensor
+
+- name: gather_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::gather.out(Tensor self, int dim, Tensor index, *, bool sparse_grad=False, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: index
+    type: const at::Tensor &
+  - name: sparse_grad
+    type: bool
+  return_type: at::Tensor &
+
+- name: native_batch_norm_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::native_batch_norm_backward(Tensor grad_out, Tensor input, Tensor? weight, Tensor? running_mean, Tensor? running_var, Tensor? save_mean, Tensor? save_invstd, bool train, float eps, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  arguments:
+  - name: grad_out
+    type: const at::Tensor &
+  - name: input
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: running_mean
+    type: const at::Tensor &
+  - name: running_var
+    type: const at::Tensor &
+  - name: save_mean
+    type: const at::Tensor &
+  - name: save_invstd
+    type: const at::Tensor &
+  - name: train
+    type: bool
+  - name: eps
+    type: double
+  - name: output_mask
+    type: std::array<bool, 3>
+  return_type: std::tuple<at::Tensor, at::Tensor, at::Tensor>
+
+- name: local_scalar_dense
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_local_scalar_dense(Tensor self) -> Scalar
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Scalar
+
+- name: clamp_min
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::clamp_min(Tensor self, Scalar min) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: min
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: clamp_min_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::clamp_min_(Tensor(a!) self, Scalar min) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: min
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: clamp_min_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::clamp_min.out(Tensor self, Scalar min, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: min
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: avg_pool2d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::avg_pool2d_backward(Tensor grad_output, Tensor self, int[2] kernel_size, int[2] stride, int[2] padding, bool ceil_mode, bool count_include_pad, int? divisor_override) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: kernel_size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: ceil_mode
+    type: bool
+  - name: count_include_pad
+    type: bool
+  - name: divisor_override
+    type: c10::optional<int64_t>
+  return_type: at::Tensor
+
+- name: max_pool2d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::max_pool2d_with_indices_backward(Tensor grad_output, Tensor self, int[2] kernel_size, int[2] stride, int[2] padding, int[2] dilation, bool ceil_mode, Tensor indices) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: kernel_size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: dilation
+    type: at::IntArrayRef
+  - name: ceil_mode
+    type: bool
+  - name: indices
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: clamp
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::clamp(Tensor self, Scalar? min=None, Scalar? max=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: min
+    type: at::optional<at::Scalar>
+  - name: max
+    type: at::optional<at::Scalar>
+  return_type: at::Tensor
+
+- name: clamp_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::clamp_(Tensor(a!) self, Scalar? min=None, Scalar? max=None) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: min
+    type: at::optional<at::Scalar>
+  - name: max
+    type: at::optional<at::Scalar>
+  return_type: at::Tensor &
+
+- name: clamp_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::clamp.out(Tensor self, Scalar? min=None, Scalar? max=None, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: min
+    type: at::optional<at::Scalar>
+  - name: max
+    type: at::optional<at::Scalar>
+  return_type: at::Tensor &
+
+- name: _softmax_backward_data
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_softmax_backward_data(Tensor grad_output, Tensor output, int dim, Tensor self) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: output
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: _log_softmax_backward_data
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_log_softmax_backward_data(Tensor grad_output, Tensor output, int dim, Tensor self) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: output
+    type: const at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: smooth_l1_loss_forward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::smooth_l1_loss(Tensor self, Tensor target, int reduction=Mean) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor
+
+- name: smooth_l1_loss_forward_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::smooth_l1_loss.out(Tensor self, Tensor target, int reduction=Mean, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: smooth_l1_loss_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::smooth_l1_loss_backward(Tensor grad_output, Tensor self, Tensor target, int reduction) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor
+
+- name: smooth_l1_loss_backward_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::smooth_l1_loss_backward.grad_input(Tensor grad_output, Tensor self, Tensor target, int reduction, *, Tensor(a!) grad_input) -> Tensor(a!)
+  arguments:
+  - name: grad_input
+    type: at::Tensor &
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: binary_cross_entropy_with_logits
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::binary_cross_entropy_with_logits(Tensor self, Tensor target, Tensor? weight=None, Tensor? pos_weight=None, int reduction=Mean) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: pos_weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor
+
+- name: binary_cross_entropy_with_logits_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::binary_cross_entropy_with_logits_backward(Tensor grad_output, Tensor self, Tensor target, Tensor? weight=None, Tensor? pos_weight=None, int reduction=Mean) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: pos_weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor
+
+- name: nll_loss_forward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::nll_loss_forward(Tensor self, Tensor target, Tensor? weight, int reduction, int ignore_index) -> (Tensor output, Tensor total_weight)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  - name: ignore_index
+    type: int64_t
+  return_type: std::tuple<at::Tensor, at::Tensor>
+
+- name: nll_loss2d_forward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::nll_loss2d_forward(Tensor self, Tensor target, Tensor? weight, int reduction, int ignore_index) -> (Tensor output, Tensor total_weight)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  - name: ignore_index
+    type: int64_t
+  return_type: std::tuple<at::Tensor, at::Tensor>
+
+- name: nll_loss_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::nll_loss_backward(Tensor grad_output, Tensor self, Tensor target, Tensor? weight, int reduction, int ignore_index, Tensor total_weight) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  - name: ignore_index
+    type: int64_t
+  - name: total_weight
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: binary_cross_entropy_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::binary_cross_entropy.out(Tensor self, Tensor target, Tensor? weight=None, int reduction=Mean, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: binary_cross_entropy
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::binary_cross_entropy(Tensor self, Tensor target, Tensor? weight=None, int reduction=Mean) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor
+
+- name: binary_cross_entropy_backward_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::binary_cross_entropy_backward.grad_input(Tensor grad_output, Tensor self, Tensor target, Tensor? weight=None, int reduction=Mean, *, Tensor(a!) grad_input) -> Tensor(a!)
+  arguments:
+  - name: grad_input
+    type: at::Tensor &
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: binary_cross_entropy_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::binary_cross_entropy_backward(Tensor grad_output, Tensor self, Tensor target, Tensor? weight=None, int reduction=Mean) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor
+
+- name: nll_loss2d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::nll_loss2d_backward(Tensor grad_output, Tensor self, Tensor target, Tensor? weight, int reduction, int ignore_index, Tensor total_weight) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  - name: ignore_index
+    type: int64_t
+  - name: total_weight
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: zero_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::zero_(Tensor(a!) self) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  return_type: at::Tensor &
+
+- name: rsub
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::rsub.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  - name: alpha
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: rsub
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::rsub.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
+  arguments:
+   - name: self
+     type: const at::Tensor &
+   - name: other
+     type: at::Scalar
+   - name: alpha
+     type: at::Scalar
+  return_type: at::Tensor
+
+- name: arange_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::arange.start_out(Scalar start, Scalar end, Scalar step=1, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: start
+    type: at::Scalar
+  - name: end
+    type: at::Scalar
+  - name: step
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: diag
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::diag(Tensor self, int diagonal=0) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: diagonal
+    type: int64_t
+  return_type: at::Tensor
+
+- name: diag_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::diag.out(Tensor self, int diagonal=0, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: diagonal
+    type: int64_t
+  return_type: at::Tensor &
+
+- name: reshape
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::reshape(Tensor self, int[] shape) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: shape
+    type: at::IntArrayRef
+  return_type: at::Tensor
+
+- name: clone
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::clone(Tensor self, *, MemoryFormat? memory_format=None) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: memory_format
+    type: c10::optional<c10::MemoryFormat>
+  return_type: at::Tensor
+
+- name: fill_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::fill_.Tensor(Tensor(a!) self, Tensor value) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: value
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: fill_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::fill_.Scalar(Tensor(a!) self, Scalar value) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: value
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: sum_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::sum.IntList_out(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: result
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: dim
+    type: at::IntArrayRef
+  - name: keepdim
+    type: bool
+  - name: dtype
+    type: c10::optional<c10::ScalarType>
+    default_value: =c10::nullopt
+  return_type: at::Tensor &
+
+- name: empty_strided
+  use_mlu_dispatcher: unboxed_only
+  derived_type: no
+  schema_string: aten::empty_strided(int[] size, int[] stride, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+  arguments:
+  - name: size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: options
+    type: const at::TensorOptions &
+  return_type: at::Tensor
+
+- name: convolution_overrideable
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::convolution_overrideable(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, bool transposed, int[] output_padding, int groups) -> Tensor
+  arguments:
+  - name: input
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: bias
+    type: const at::Tensor &
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: dilation
+    type: at::IntArrayRef
+  - name: transposed
+    type: bool
+  - name: output_padding
+    type: at::IntArrayRef
+  - name: groups
+    type: int64_t
+  return_type: at::Tensor
+
+- name: convolution_backward_overrideable
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::convolution_backward_overrideable(Tensor grad_output, Tensor input, Tensor weight, int[] stride, int[] padding, int[] dilation, bool transposed, int[] output_padding, int groups, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: input
+    type: const at::Tensor &
+  - name: weight
+    type: const at::Tensor &
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: dilation
+    type: at::IntArrayRef
+  - name: transposed
+    type: bool
+  - name: output_padding
+    type: at::IntArrayRef
+  - name: groups
+    type: int64_t
+  - name: output_mask
+    type: std::array<bool, 3>
+  return_type: std::tuple<at::Tensor, at::Tensor, at::Tensor>
+
+- name: masked_fill_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::masked_fill_.Scalar(Tensor(a!) self, Tensor mask, Scalar value) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: mask
+    type: const at::Tensor &
+  - name: value
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: masked_fill_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::masked_fill_.Tensor(Tensor(a!) self, Tensor mask, Tensor value) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: mask
+    type: const at::Tensor &
+  - name: value
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: masked_select
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::masked_select(Tensor self, Tensor mask) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: mask
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: masked_select_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::masked_select.out(Tensor self, Tensor mask, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: mask
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: alias
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::alias(Tensor(a) self) -> Tensor(a)
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: index_put_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::index_put_(Tensor(a!) self, Tensor?[] indices, Tensor values, bool accumulate=False) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: indices
+    type: at::TensorList
+  - name: values
+    type: const at::Tensor &
+  - name: accumulate
+    type: bool
+  return_type: at::Tensor &
+
+- name: index_put
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::index_put(Tensor self, Tensor?[] indices, Tensor values, bool accumulate=False) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: indices
+    type: at::TensorList
+  - name: values
+    type: const at::Tensor &
+  - name: accumulate
+    type: bool
+  return_type: at::Tensor
+
+- name: _index_put_impl_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::_index_put_impl_(Tensor(a!) self, Tensor?[] indices, Tensor values, bool accumulate=False, bool unsafe=False) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: indices
+    type: at::TensorList
+  - name: values
+    type: const at::Tensor &
+  - name: accumulate
+    type: bool
+  - name: unsafe
+    type: bool
+  return_type: at::Tensor &
+
+- name: index_fill_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::index_fill_.int_Scalar(Tensor(a!) self, int dim, Tensor index, Scalar value) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: dim
+    type: int64_t
+  - name: index
+    type: const at::Tensor &
+  - name: value
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: dump
+  use_mlu_dispatcher: custom
+  derived_type: bang
+  schema_string: torch_mlu::dump
+  arguments:
+  - name: input
+    type: const at::Tensor &
+  return_type: bool
+
+- name: empty_pinned
+  use_mlu_dispatcher: unboxed_only
+  derived_type: no
+  schema_string: aten::empty_pinned(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+  arguments:
+  - name: size
+    type: at::IntArrayRef
+  - name: options
+    type: const at::TensorOptions &
+  return_type: at::Tensor
+
+- name: bitwise_or_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::bitwise_or.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: bitwise_or_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::bitwise_or.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: index
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::index.Tensor(Tensor self, Tensor?[] indices) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: indices
+    type: at::TensorList
+  return_type: at::Tensor
+
+# register for torchvision namespace
+- name: nms
+  use_mlu_dispatcher: custom
+  derived_type: cnnl
+  schema_string: torchvision::nms(Tensor dets, Tensor scores, float iou_threshold) -> Tensor
+  arguments:
+  - name: dets
+    type: const at::Tensor &
+  - name: scores
+    type: const at::Tensor &
+  - name: iou_threshold
+    type: double
+  return_type: at::Tensor
+
+- name: remainder
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::remainder.Scalar(Tensor self, Scalar other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor
+
+- name: remainder
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::remainder.Tensor(Tensor self, Tensor other) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: remainder_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::remainder_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: remainder_
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::remainder_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+  arguments:
+  - name: self
+    type: at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: remainder_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::remainder.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: at::Scalar
+  return_type: at::Tensor &
+
+- name: remainder_out
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::remainder.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
+  arguments:
+  - name: out
+    type: at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: other
+    type: const at::Tensor &
+  return_type: at::Tensor &
+
+- name: randn
+  use_mlu_dispatcher: unboxed_only
+  derived_type: no
+  schema_string: aten::randn(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+  arguments:
+  - name: size
+    type: at::IntArrayRef
+  - name: options
+    type: const at::TensorOptions &
+  return_type: at::Tensor
+
+- name: avg_pool3d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::avg_pool3d_backward(Tensor grad_output, Tensor self, int[3] kernel_size, int[3] stride, int[3] padding, bool ceil_mode, bool count_include_pad, int? divisor_override) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: kernel_size
+    type: at::IntArrayRef
+  - name: stride
+    type: at::IntArrayRef
+  - name: padding
+    type: at::IntArrayRef
+  - name: ceil_mode
+    type: bool
+  - name: count_include_pad
+    type: bool
+  - name: divisor_override
+    type: c10::optional<int64_t>
+  return_type: at::Tensor
+
+- name: adaptive_avg_pool3d
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::adaptive_avg_pool3d(Tensor self, int[3] output_size) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: output_size
+    type: at::IntArrayRef
+  return_type: at::Tensor
+
+- name: adaptive_avg_pool3d_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::adaptive_avg_pool3d_backward(Tensor grad_output, Tensor self) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  return_type: at::Tensor
+
+- name: mse_loss
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mse_loss(Tensor self, Tensor target, int reduction=Mean) -> Tensor
+  arguments:
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor
+
+- name: mse_loss_backward
+  use_mlu_dispatcher: unboxed_only
+  derived_type: cnnl
+  schema_string: aten::mse_loss_backward(Tensor grad_output, Tensor self, Tensor target, int reduction) -> Tensor
+  arguments:
+  - name: grad_output
+    type: const at::Tensor &
+  - name: self
+    type: const at::Tensor &
+  - name: target
+    type: const at::Tensor &
+  - name: reduction
+    type: int64_t
+  return_type: at::Tensor
+

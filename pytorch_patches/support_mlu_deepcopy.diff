@@ -1,0 +1,13 @@
+diff --git a/torch/tensor.py b/torch/tensor.py
+index 4b981fc..e1ff64f 100644
+--- a/torch/tensor.py
++++ b/torch/tensor.py
+@@ -40,7 +40,7 @@ class Tensor(torch._C._TensorBase):
+         if id(self) in memo:
+             return memo[id(self)]
+         with torch.no_grad():
+-            if self.is_sparse or self.device.type == 'xla':
++            if self.is_sparse or self.device.type == 'xla' or self.device.type == 'mlu':
+                 new_tensor = self.clone()
+             else:
+                 new_storage = self.storage().__deepcopy__(memo)

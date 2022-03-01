@@ -1,0 +1,84 @@
+diff --git a/torch/functional.py b/torch/functional.py
+index 9bc6a53..2d18bbc 100644
+--- a/torch/functional.py
++++ b/torch/functional.py
+@@ -19,6 +19,7 @@ __all__ = [
+     'chain_matmul',
+     'einsum',
+     'istft',
++    'is_mlu_available',
+     'lu',
+     'lu_unpack',
+     'norm',
+@@ -32,6 +33,12 @@ __all__ = [
+     'unique_consecutive',
+ ]
+ 
++def is_mlu_available():
++    try:
++        import torch_mlu
++        return True
++    except ImportError:
++        return False
+ 
+ def broadcast_tensors(*tensors):
+     r"""broadcast_tensors(*tensors) -> List of Tensors
+diff --git a/torch/tensor.py b/torch/tensor.py
+index 4b981fc..897502b 100644
+--- a/torch/tensor.py
++++ b/torch/tensor.py
+@@ -722,6 +722,22 @@ class Tensor(torch._C._TensorBase):
+         else:
+             return super(Tensor, self).rename(names)
+ 
++    def pin_memory(self):
++        if torch.is_mlu_available():
++            import torch_mlu
++            import torch_mlu.core.mlu_model as ct
++            return ct.pin_memory(self)
++        else:
++            return super(Tensor, self).pin_memory()
++
++    def is_pinned(self):
++        if torch.is_mlu_available():
++            import torch_mlu
++            import torch_mlu.core.mlu_model as ct
++            return ct.is_pinned(self)
++        else:
++            return super(Tensor, self).is_pinned()
++
+     @property
+     def grad(self):
+         """
+diff --git a/torch/utils/data/dataloader.py b/torch/utils/data/dataloader.py
+index bba2787..96bca19 100644
+--- a/torch/utils/data/dataloader.py
++++ b/torch/utils/data/dataloader.py
+@@ -288,7 +288,13 @@ class DataLoader(object):
+         if self.num_workers == 0:
+             return _SingleProcessDataLoaderIter(self)
+         else:
+-            return _MultiProcessingDataLoaderIter(self)
++            if torch.is_mlu_available():
++                import torch_mlu
++                import torch_mlu.core.utils.data_loader as dl
++                return dl._MLUMultiProcessingDataLoaderIter(self)
++            else:
++                return _MultiProcessingDataLoaderIter(self)
++
+ 
+     @property
+     def _auto_collation(self):
+@@ -343,7 +349,11 @@ class _BaseDataLoaderIter(object):
+         self._drop_last = loader.drop_last
+         self._index_sampler = loader._index_sampler
+         self._num_workers = loader.num_workers
+-        self._pin_memory = loader.pin_memory and torch.cuda.is_available()
++        self._pin_memory = loader.pin_memory and (torch.cuda.is_available() or torch.is_mlu_available())
++        if torch.is_mlu_available():
++           import torch_mlu
++           import torch_mlu.core.mlu_model as ct
++           self._pin_memory = self._pin_memory and ct.get_running_mode()
+         self._timeout = loader.timeout
+         self._collate_fn = loader.collate_fn
+         self._sampler_iter = iter(self._index_sampler)

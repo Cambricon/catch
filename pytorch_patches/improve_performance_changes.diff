@@ -1,0 +1,33 @@
+diff --git a/aten/src/ATen/native/Loss.cpp b/aten/src/ATen/native/Loss.cpp
+index d7d02cf..13e3e3d 100644
+--- a/aten/src/ATen/native/Loss.cpp
++++ b/aten/src/ATen/native/Loss.cpp
+@@ -219,6 +219,14 @@ Tensor binary_cross_entropy_with_logits(const Tensor& input, const Tensor& targe
+
+ Tensor binary_cross_entropy_with_logits_backward(const Tensor& grad, const Tensor& input, const Tensor& target, const Tensor& weight, const Tensor& pos_weight, int64_t reduction) {
+     Tensor grad_input;
++    if (grad.device().type() == c10::DeviceType::MLU) {
++      auto tmp = ([&]() {
++        at::AutoNonVariableTypeMode non_var_type_mode(true);
++          return at::binary_cross_entropy_with_logits_backward(
++              grad, input, target, weight, pos_weight, reduction);
++      })();
++      return tmp;
++    }
+     if (pos_weight.defined()) {
+         // pos_weight need to be broadcasted, thus mul(target) is not inplace.
+         auto t = pos_weight.mul(target);
+diff --git a/aten/src/ATen/native/Convolution.cpp b/aten/src/ATen/native/Convolution.cpp
+index 1116754..83b51a6 100644
+--- a/aten/src/ATen/native/Convolution.cpp
++++ b/aten/src/ATen/native/Convolution.cpp
+@@ -659,7 +659,7 @@ at::Tensor _convolution(
+ 
+   if (k == 3) {
+     // avoid accidentally going through NHWC for permuted 3d input.
+-    if (!input_is_mkldnn) {
++    if (!input_is_mkldnn && input.device().type() != kMLU) {
+       input = input.contiguous();
+     }
+     params.view1d_as_2d();
+

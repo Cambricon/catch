@@ -1,0 +1,34 @@
+diff --git a/torch/nn/functional.py b/torch/nn/functional.py
+index 43d8c0d..c436106 100644
+--- a/torch/nn/functional.py
++++ b/torch/nn/functional.py
+@@ -550,6 +550,9 @@ def max_pool2d_with_indices(input, kernel_size, stride=None, padding=0, dilation
+ 
+     See :class:`~torch.nn.MaxPool2d` for details.
+     """
++    if input.device.type == 'mlu' and return_indices:
++        warnings.warn("Different with the origin CPU/GPU ops, the max indices returned by "
++                      "MLU max_pool2d_with_indices are local max indices inside the kernel. ")
+     if not torch.jit.is_scripting():
+         if type(input) is not Tensor and has_torch_function((input,)):
+             return handle_torch_function(
+@@ -593,6 +596,9 @@ def max_pool3d_with_indices(input, kernel_size, stride=None, padding=0,
+ 
+     See :class:`~torch.nn.MaxPool3d` for details.
+     """
++    if input.device.type == 'mlu' and return_indices:
++        warnings.warn("Different with the origin CPU/GPU ops, the max indices returned by "
++                      "MLU max_pool3d_with_indices are local max indices inside the kernel. ")
+     if not torch.jit.is_scripting():
+         if type(input) is not Tensor and has_torch_function((input,)):
+             return handle_torch_function(
+@@ -825,6 +831,9 @@ def adaptive_max_pool2d_with_indices(input, output_size, return_indices=False):
+             double-integer tuple)
+         return_indices: whether to return pooling indices. Default: ``False``
+     """
++    if input.device.type == 'mlu' and return_indices:
++        warnings.warn("Different with the origin CPU/GPU ops, the max indices returned by "
++                      "MLU adaptive_max_pool2d_with_indices are local max indices inside the kernel. ")
+     if not torch.jit.is_scripting():
+         if type(input) is not Tensor and has_torch_function((input,)):
+             return handle_torch_function(

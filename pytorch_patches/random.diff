@@ -1,0 +1,15 @@
+diff --git a/torch/random.py b/torch/random.py
+index 40aa87e..267d46b 100644
+--- a/torch/random.py
++++ b/torch/random.py
+@@ -31,6 +31,10 @@ def manual_seed(seed):
+     if not torch.cuda._is_in_bad_fork():
+         torch.cuda.manual_seed_all(seed)
+ 
++    if torch.is_mlu_available():
++        import torch_mlu.core.mlu_model as ct
++        ct.manual_seed_all(seed)
++
+     return default_generator.manual_seed(seed)
+ 
+ 

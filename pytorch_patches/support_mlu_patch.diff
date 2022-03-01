@@ -1,0 +1,329 @@
+diff --git a/aten/src/ATen/core/interned_strings.h b/aten/src/ATen/core/interned_strings.h
+index a97f588..195cf31 100644
+--- a/aten/src/ATen/core/interned_strings.h
++++ b/aten/src/ATen/core/interned_strings.h
+@@ -28,11 +28,13 @@ namespace c10 {
+   _(prim, BroadcastingChunk)         \
+   _(prim, BroadcastSizes)            \
+   _(prim, Constant)                  \
++  _(prim, MLUConstant)               \
+   _(prim, ChunkSizes)                \
+   _(prim, Drop)                      \
+   _(prim, Eval)                      \
+   _(prim, Expand) /* onnx */         \
+   _(prim, FusionGroup)               \
++  _(prim, MLUFusionGroup)            \
+   _(prim, CudaFusionGroup)           \
+   _(prim, FunctionalGraph)           \
+   _(prim, DifferentiableGraph)       \
+diff --git a/c10/core/Backend.h b/c10/core/Backend.h
+index 3b5484c..cd382f6 100644
+--- a/c10/core/Backend.h
++++ b/c10/core/Backend.h
+@@ -35,6 +35,7 @@ enum class Backend {
+   SparseHIP,
+   MSNPU,
+   XLA,
++  MLU,
+   Vulkan,
+   QuantizedCPU,
+   QuantizedCUDA,
+@@ -76,6 +77,8 @@ static inline Backend toDense(Backend b) {
+       return Backend::MSNPU;
+     case Backend::XLA:
+       return Backend::XLA;
++    case Backend::MLU:
++      return Backend::MLU;
+     case Backend::SparseCPU:
+       return Backend::CPU;
+     case Backend::SparseCUDA:
+@@ -104,6 +107,8 @@ static inline Backend dispatchKeyToBackend(DispatchKey t) {
+     return Backend::MSNPU;
+   } else if (t == DispatchKey::XLA || t == DispatchKey::XLAPreAutograd) {
+     return Backend::XLA;
++  } else if (t == DispatchKey::MLU || t == DispatchKey::MLUPreAutograd) {
++    return Backend::MLU;
+   } else if (t == DispatchKey::Vulkan) {
+     return Backend::Vulkan;
+   } else if (t == DispatchKey::SparseCPU) {
+@@ -139,6 +144,8 @@ static inline DispatchKey backendToDispatchKey(Backend b) {
+       return DispatchKey::MSNPU;
+     case Backend::XLA:
+       return DispatchKey::XLA;
++    case Backend::MLU:
++      return DispatchKey::MLU;
+     case Backend::SparseCPU:
+       return DispatchKey::SparseCPU;
+     case Backend::SparseCUDA:
+@@ -174,6 +181,8 @@ static inline DeviceType backendToDeviceType(Backend b) {
+       return DeviceType::MSNPU;
+     case Backend::XLA:
+       return DeviceType::XLA;
++    case Backend::MLU:
++      return DeviceType::MLU;
+     case Backend::SparseCPU:
+       return DeviceType::CPU;
+     case Backend::SparseCUDA:
+@@ -213,6 +222,8 @@ static inline Backend backendToCPU(Backend b) {
+     case Backend::MSNPU:
+     case Backend::XLA:
+       return Backend::CPU;
++    case Backend::MLU:
++      return Backend::CPU;
+     case Backend::MkldnnCPU:
+       return Backend::MkldnnCPU;
+     case Backend::QuantizedCPU:
+@@ -235,6 +246,8 @@ static inline Backend backendToCUDA(Backend b) {
+     case Backend::MSNPU:
+     case Backend::XLA:
+       return Backend::CUDA;
++    case Backend::MLU:
++      return Backend::CUDA;
+     case Backend::SparseCPU:
+     case Backend::SparseCUDA:
+     case Backend::SparseHIP:
+@@ -255,6 +268,8 @@ static inline Backend backendToHIP(Backend b) {
+     case Backend::MSNPU:
+     case Backend::XLA:
+       return Backend::HIP;
++    case Backend::MLU:
++      return Backend::HIP;
+     case Backend::SparseCPU:
+     case Backend::SparseCUDA:
+     case Backend::SparseHIP:
+@@ -281,6 +296,8 @@ static inline const char* toString(Backend b) {
+       return "MSNPU";
+     case Backend::XLA:
+       return "XLA";
++    case Backend::MLU:
++      return "MLU";
+     case Backend::SparseCPU:
+       return "SparseCPU";
+     case Backend::SparseCUDA:
+diff --git a/c10/core/Device.cpp b/c10/core/Device.cpp
+index 60c40b5..d48db8e 100644
+--- a/c10/core/Device.cpp
++++ b/c10/core/Device.cpp
+@@ -30,7 +30,7 @@
+ namespace c10 {
+ namespace {
+ DeviceType parse_type(const std::string& device_string) {
+-  static const std::array<std::pair<std::string, DeviceType>, 10> types = {{
++  static const std::array<std::pair<std::string, DeviceType>, 11> types = {{
+       {"cpu", DeviceType::CPU},
+       {"cuda", DeviceType::CUDA},
+       {"mkldnn", DeviceType::MKLDNN},
+@@ -41,6 +41,7 @@ DeviceType parse_type(const std::string& device_string) {
+       {"fpga", DeviceType::FPGA},
+       {"msnpu", DeviceType::MSNPU},
+       {"xla", DeviceType::XLA},
++      {"mlu", DeviceType::MLU},
+   }};
+   auto device = std::find_if(
+       types.begin(),
+diff --git a/c10/core/DeviceType.cpp b/c10/core/DeviceType.cpp
+index 9c8c53b..3634bfc 100644
+--- a/c10/core/DeviceType.cpp
++++ b/c10/core/DeviceType.cpp
+@@ -29,6 +29,8 @@ std::string DeviceTypeName(DeviceType d, bool lower_case) {
+       return lower_case ? "xla" : "XLA";
+     case DeviceType::Vulkan:
+       return lower_case ? "vulkan" : "VULKAN";
++    case DeviceType::MLU:
++      return lower_case ? "mlu" : "MLU";
+     default:
+       AT_ERROR(
+           "Unknown device: ",
+@@ -62,6 +64,7 @@ bool isValidDeviceType(DeviceType d) {
+     case DeviceType::MSNPU:
+     case DeviceType::XLA:
+     case DeviceType::Vulkan:
++    case DeviceType::MLU:
+       return true;
+     default:
+       return false;
+diff --git a/c10/core/DeviceType.h b/c10/core/DeviceType.h
+index 0289cf0..1d04246 100644
+--- a/c10/core/DeviceType.h
++++ b/c10/core/DeviceType.h
+@@ -24,11 +24,12 @@ enum class DeviceType : int16_t {
+   MSNPU = 8, // MSNPU
+   XLA = 9, // XLA / TPU
+   Vulkan = 10, // Vulkan
++  MLU = 11, // Cambricon MLU
+   // NB: If you add more devices:
+   //  - Change the implementations of DeviceTypeName and isValidDeviceType
+   //    in DeviceType.cpp
+   //  - Change the number below
+-  COMPILE_TIME_MAX_DEVICE_TYPES = 11,
++  COMPILE_TIME_MAX_DEVICE_TYPES = 12,
+   ONLY_FOR_TEST = 20901, // This device type is only for test.
+ };
+
+@@ -39,6 +40,7 @@ constexpr DeviceType kFPGA = DeviceType::FPGA;
+ constexpr DeviceType kMSNPU = DeviceType::MSNPU;
+ constexpr DeviceType kXLA = DeviceType::XLA;
+ constexpr DeviceType kVulkan = DeviceType::Vulkan;
++constexpr DeviceType kMLU = DeviceType::MLU;
+
+ // define explicit int constant
+ constexpr int COMPILE_TIME_MAX_DEVICE_TYPES =
+diff --git a/c10/core/DispatchKey.cpp b/c10/core/DispatchKey.cpp
+index de80833..bd47cef 100644
+--- a/c10/core/DispatchKey.cpp
++++ b/c10/core/DispatchKey.cpp
+@@ -34,6 +34,8 @@ const char* toString(DispatchKey t) {
+       return "XLA";
+     case DispatchKey::Vulkan:
+       return "Vulkan";
++    case DispatchKey::MLU:
++      return "MLU";
+     case DispatchKey::MkldnnCPU:
+       return "MkldnnCPU";
+     case DispatchKey::QuantizedCPU:
+diff --git a/c10/core/DispatchKey.h b/c10/core/DispatchKey.h
+index 5605a07..0eee04b 100644
+--- a/c10/core/DispatchKey.h
++++ b/c10/core/DispatchKey.h
+@@ -56,6 +56,7 @@ enum class DispatchKey : uint8_t {
+   MSNPU, // unused externally, but tested at
+          // test/cpp_extensions/msnpu_extension.cpp
+   XLA, // lives out of tree at https://github.com/pytorch/xla
++  MLU, // lives out of tree at https://github.com/xxx/catch
+   Vulkan,
+
+   // These are Caffe2 device types which we grandfathered into
+@@ -206,6 +207,9 @@ enum class DispatchKey : uint8_t {
+   // operators which support autograd.
+   XLAPreAutograd,
+
++  // Todo(zhujing) ...
++  MLUPreAutograd,
++
+   // Autocasting precedes VariableTypeId, to ensure casts are autograd-exposed
+   // and inputs are saved for backward in the post-autocast type.
+   Autocast,
+diff --git a/c10/core/DispatchKeySet.h b/c10/core/DispatchKeySet.h
+index 25451ce..4fc45b7 100644
+--- a/c10/core/DispatchKeySet.h
++++ b/c10/core/DispatchKeySet.h
+@@ -139,4 +139,8 @@ static inline DispatchKeySet XLA() {
+   return DispatchKeySet{DispatchKey::XLA, DispatchKey::XLAPreAutograd};
+ }
+
++static inline DispatchKeySet MLU() {
++  return DispatchKeySet{DispatchKey::MLU, DispatchKey::MLUPreAutograd};
++}
++
+ }
+diff --git a/c10/core/TensorOptions.h b/c10/core/TensorOptions.h
+index 83e09fa..5ae8947 100644
+--- a/c10/core/TensorOptions.h
++++ b/c10/core/TensorOptions.h
+@@ -405,6 +405,8 @@ struct C10_API TensorOptions {
+             return DispatchKey::XLA;
+           case DeviceType::Vulkan:
+             return DispatchKey::Vulkan;
++          case DeviceType::MLU:
++            return DispatchKey::MLU;
+           default:
+             AT_ERROR("Unsupported device type for dense layout: ", device().type());
+         }
+@@ -645,6 +647,10 @@ inline DeviceType computeDeviceType(DispatchKey tid) {
+     return DeviceType::XLA;
+   } else if (tid == DispatchKey::XLAPreAutograd) {
+     return DeviceType::XLA;
++  } else if (tid == DispatchKey::MLU) {
++    return DeviceType::MLU;
++  } else if (tid == DispatchKey::MLUPreAutograd) {
++    return DeviceType::MLU;
+   } else if (tid == DispatchKey::SparseCPU) {
+     return DeviceType::CPU;
+   } else if (tid == DispatchKey::SparseCUDA) {
+diff --git a/torch/csrc/jit/ir/alias_analysis.cpp b/torch/csrc/jit/ir/alias_analysis.cpp
+index 9e7963f..17fb7c4 100644
+--- a/torch/csrc/jit/ir/alias_analysis.cpp
++++ b/torch/csrc/jit/ir/alias_analysis.cpp
+@@ -473,6 +473,7 @@ void AliasDb::analyzeImpl(Node* node) {
+     case prim::Loop:
+       return analyzeLoop(node);
+     case prim::FusionGroup:
++    case prim::MLUFusionGroup:
+     case prim::CudaFusionGroup:
+     case prim::FunctionalGraph:
+     case prim::DifferentiableGraph:
+@@ -486,6 +487,7 @@ void AliasDb::analyzeImpl(Node* node) {
+     case prim::GradOf:
+       return analyzeGradOf(node);
+     case prim::Constant:
++    case prim::MLUConstant:
+     case prim::AutogradZero:
+     case prim::AutogradAdd:
+     case prim::FusedConcat:
+diff --git a/torch/csrc/jit/runtime/operator.cpp b/torch/csrc/jit/runtime/operator.cpp
+index b3eec6e..d0128fb 100644
+--- a/torch/csrc/jit/runtime/operator.cpp
++++ b/torch/csrc/jit/runtime/operator.cpp
+@@ -209,6 +209,8 @@ bool printerHasSpecialCaseFor(Symbol sym) {
+       prim::Drop, // used in interpreter only
+       prim::FusedConcat, // optimization pass adds it
+       prim::FusionGroup, // optimization pass adds it
++      prim::MLUFusionGroup,
++      prim::MLUConstant,
+       prim::CudaFusionGroup, // optimization pass adds it
+       prim::Load, // used in interpreter only
+       prim::MMTreeReduce, // used as an optimization
+@@ -240,10 +242,12 @@ bool aliasAnalysisHasSpecialCaseFor(Symbol symbol) {
+       prim::If,
+       prim::Loop,
+       prim::FusionGroup,
++      prim::MLUFusionGroup,
+       prim::CudaFusionGroup,
+       prim::DifferentiableGraph,
+       prim::FunctionalGraph,
+       prim::Constant,
++      prim::MLUConstant,
+       prim::Uninitialized,
+       prim::DictConstruct,
+       prim::ListConstruct,
+diff --git a/torch/csrc/utils/tensor_new.cpp b/torch/csrc/utils/tensor_new.cpp
+index 4215f89..a21ccca 100644
+--- a/torch/csrc/utils/tensor_new.cpp
++++ b/torch/csrc/utils/tensor_new.cpp
+@@ -59,6 +59,9 @@ Backend backendToBackendOfDeviceType(Backend b, DeviceType d) {
+     case DeviceType::XLA:
+       TORCH_CHECK(!isSparse(b), "Sparse not implemented for XLA");
+       return Backend::XLA;
++    case DeviceType::MLU:
++      TORCH_CHECK(!isSparse(b), "Sparse not implemented for MLU");
++      return Backend::MLU;
+     default:
+       AT_ERROR("Unknown device type");
+   }
+@@ -333,11 +336,13 @@ void check_base_legacy_new(c10::DispatchKey dispatch_key, at::Layout expected_la
+     TORCH_CHECK(dispatch_key == c10::DispatchKey::CPU
+                 || dispatch_key == c10::DispatchKey::CUDA
+                 || dispatch_key == c10::DispatchKey::HIP
+-                || c10::XLA().has(dispatch_key),
++                || c10::XLA().has(dispatch_key)
++                || c10::MLU().has(dispatch_key),
+                 "new(): expected DispatchKey: ", c10::DispatchKey::CPU,
+                 " or ", c10::DispatchKey::CUDA,
+                 " or ", c10::DispatchKey::HIP,
+                 " or ", c10::DispatchKey::XLA,
++                " or ", c10::DispatchKey::MLU,
+                 " but got: ", dispatch_key);
+   } else if(expected_layout == c10::kSparse) {
+     // NOTE: no sparse XLA
+diff --git a/torch/csrc/utils/tensor_types.cpp b/torch/csrc/utils/tensor_types.cpp
+index e6b851a..c869753 100644
+--- a/torch/csrc/utils/tensor_types.cpp
++++ b/torch/csrc/utils/tensor_types.cpp
+@@ -18,6 +18,7 @@ namespace torch { namespace utils {
+ static const char* backend_to_string(const at::Backend& backend) {
+   switch (backend) {
+     case at::Backend::CPU: return "torch";
++    case at::Backend::MLU: return "torch.mlu";
+     case at::Backend::CUDA: return "torch.cuda";
+     case at::Backend::SparseCPU: return "torch.sparse";
+     case at::Backend::SparseCUDA: return "torch.cuda.sparse";

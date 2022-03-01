@@ -1,0 +1,14 @@
+diff --git a/torch/hub.py b/torch/hub.py
+index 420bd77..52214ae 100644
+--- a/torch/hub.py
++++ b/torch/hub.py
+@@ -461,7 +461,8 @@ def load_state_dict_from_url(url, model_dir=None, map_location=None, progress=Tr
+         model_dir = os.path.join(hub_dir, 'checkpoints')
+ 
+     try:
+-        os.makedirs(model_dir)
++        if not os.path.exists(model_dir):
++            os.makedirs(model_dir)
+     except OSError as e:
+         if e.errno == errno.EEXIST:
+             # Directory already exists, ignore.

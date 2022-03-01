@@ -1,0 +1,207 @@
+diff --git a/torch/csrc/jit/api/module.cpp b/torch/csrc/jit/api/module.cpp
+index 632fc81..41abe50 100644
+--- a/torch/csrc/jit/api/module.cpp
++++ b/torch/csrc/jit/api/module.cpp
+@@ -88,10 +88,82 @@ void module_state_to(
+   variable.set_data(new_data);
+ }
+ 
++bool module_state_to_involve_mlu(
++    const detail::SlotCursor& s,
++    const c10::DeviceType& expect_src_device,
++    const at::Device& dst_device,
++    const c10::optional<at::ScalarType>& dtype,
++    bool non_blocking) {
++  auto ival = s.module_._ivalue()->getSlot(s.i_);
++  TORCH_INTERNAL_ASSERT(ival.isTensor(),
++      "this func only for converting weight tensor between cpu-mlu in jit::module");
++  autograd::Variable variable = ival.toTensor();
++  if (dst_device.type() == c10::DeviceType::MLU) {
++      TORCH_INTERNAL_ASSERT(variable.device().type() == c10::DeviceType::CPU ||
++          variable.device().type() == c10::DeviceType::MLU,
++          "Only support cpu to mlu, other devs to mlu is not supported!");
++  }
++  if (variable.device().type() == expect_src_device) {
++    auto new_data = variable.to(
++        dst_device, dtype.value_or(variable.scalar_type()), non_blocking);
++
++    new_data.set_requires_grad(variable.requires_grad());
++    // Resets gradient accumulator if metadata is out of date
++    torch::autograd::AutogradMeta* autograd_meta = torch::autograd::impl::get_autograd_meta(new_data);
++    if (autograd_meta) {
++      autograd_meta->grad_fn_ = nullptr;
++      std::lock_guard<std::mutex> lock(autograd_meta->mutex_);
++      auto prior_accumulator = autograd_meta->grad_accumulator_.lock();
++      if (prior_accumulator) {
++        autograd_meta->grad_accumulator_.reset();
++      }
++    }
++    s.module_._ivalue()->setSlot(s.i_, new_data);
++    return true;
++  }
++  return false;
++}
++
++bool Module::to_impl_involve_mlu(
++    const c10::optional<at::Device>& device,
++    const c10::optional<at::ScalarType>& dtype,
++    bool non_blocking) {
++  // cpu -> mlu
++  if (device && device->type() == c10::DeviceType::MLU) {
++    for( auto s : mutable_parameters()) {
++      module_state_to_involve_mlu(s, c10::DeviceType::CPU, *device, dtype, non_blocking);
++    }
++    for( auto s : mutable_buffers()) {
++      module_state_to_involve_mlu(s, c10::DeviceType::CPU, *device, dtype, non_blocking);
++    }
++    return true;
++  }
++  bool cpu_to_mlu = false;
++  // mlu -> cpu
++  if (device && device->type() == c10::DeviceType::CPU) {
++    for( auto s : mutable_parameters()) {
++      if(module_state_to_involve_mlu(s, c10::DeviceType::MLU, *device, dtype, non_blocking)) {
++        cpu_to_mlu = true;
++      }
++    }
++    for( auto s : mutable_buffers()) {
++      if (module_state_to_involve_mlu(s, c10::DeviceType::MLU, *device, dtype, non_blocking)) {
++        cpu_to_mlu = true;
++      }
++    }
++  }
++  if(cpu_to_mlu) return true;
++  return false;
++}
++
+ void Module::to_impl(
+     const c10::optional<at::Device>& device,
+     const c10::optional<at::ScalarType>& dtype,
+     bool non_blocking) {
++  // handle cpu <=> mlu
++  if (to_impl_involve_mlu(device, dtype, non_blocking)) {
++    return;
++  }
+   for (at::Tensor e : parameters()) {
+     module_state_to(e, device, dtype, non_blocking);
+   }
+@@ -280,6 +352,9 @@ buffer_list Module::buffers(bool recurse) const {
+ named_buffer_list Module::named_buffers(bool recurse) const {
+   return named_buffer_list(*this, recurse, /*return_module=*/false);
+ }
++mutable_buffer_list Module::mutable_buffers(bool recurse) const {
++  return mutable_buffer_list(*this, recurse, /*return_module=*/false);
++}
+ 
+ module_list Module::children() const {
+   return module_list(*this, /*recurse=*/false, /*return_module=*/false);
+@@ -294,6 +369,10 @@ named_module_list Module::named_modules() const {
+   return named_module_list(*this, /*recurse=*/true, /*return_module=*/true);
+ }
+ 
++mutable_parameter_list Module::mutable_parameters(bool recurse) const {
++  return mutable_parameter_list(*this, recurse, /*return_module=*/false);
++}
++
+ parameter_list Module::parameters(bool recurse) const {
+   return parameter_list(*this, recurse, /*return_module=*/false);
+ }
+diff --git a/torch/csrc/jit/api/module.h b/torch/csrc/jit/api/module.h
+index 36e42ee..e704c87 100644
+--- a/torch/csrc/jit/api/module.h
++++ b/torch/csrc/jit/api/module.h
+@@ -60,8 +60,10 @@ using NameTensor = Named<at::Tensor>;
+ namespace detail {
+ struct TORCH_API ModulePolicy;
+ struct TORCH_API ParameterPolicy;
++struct TORCH_API MutableParameterPolicy;
+ struct TORCH_API AttributePolicy;
+ struct TORCH_API BufferPolicy;
++struct TORCH_API MutableBufferPolicy;
+ template <typename P>
+ struct NamedPolicy;
+ } // namespace detail
+@@ -73,12 +75,14 @@ using named_module_list =
+ using parameter_list = slot_list_impl<detail::ParameterPolicy>;
+ using named_parameter_list =
+     slot_list_impl<detail::NamedPolicy<detail::ParameterPolicy>>;
++using mutable_parameter_list = slot_list_impl<detail::MutableParameterPolicy>;
+ 
+ using attribute_list = slot_list_impl<detail::AttributePolicy>;
+ using named_attribute_list =
+     slot_list_impl<detail::NamedPolicy<detail::AttributePolicy>>;
+ 
+ using buffer_list = slot_list_impl<detail::BufferPolicy>;
++using mutable_buffer_list = slot_list_impl<detail::MutableBufferPolicy>;
+ using named_buffer_list =
+     slot_list_impl<detail::NamedPolicy<detail::BufferPolicy>>;
+ 
+@@ -150,6 +154,7 @@ struct TORCH_API Module : public Object {
+ 
+   buffer_list buffers(bool recurse = true) const;
+   named_buffer_list named_buffers(bool recurse = true) const;
++  mutable_buffer_list mutable_buffers(bool recurse = true) const;
+ 
+   module_list children() const; // direct modules
+   named_module_list named_children() const;
+@@ -159,6 +164,7 @@ struct TORCH_API Module : public Object {
+   // all tensors involved in gradient optimization
+   parameter_list parameters(bool recurse = true) const;
+   named_parameter_list named_parameters(bool recurse = true) const;
++  mutable_parameter_list mutable_parameters(bool recurse = true) const;
+ 
+   // all members of the object, similar to iterating over dir(obj) in python
+   attribute_list attributes(bool recurse = true) const;
+@@ -269,6 +275,10 @@ struct TORCH_API Module : public Object {
+       const c10::optional<at::Device>& device,
+       const c10::optional<at::ScalarType>& dtype,
+       bool non_blocking);
++  bool to_impl_involve_mlu(
++    const c10::optional<at::Device>& device,
++    const c10::optional<at::ScalarType>& dtype,
++    bool non_blocking);
+ };
+ 
+ namespace detail {
+@@ -496,6 +506,20 @@ struct TORCH_API ParameterPolicy {
+   static CONSTEXPR_EXCEPT_WIN_CUDA bool all_slots = false;
+ };
+ 
++struct TORCH_API MutableParameterPolicy {
++
++  using value_type = SlotCursor;
++  static value_type create(
++      const std::vector<detail::SlotCursor>& cursors,
++      IValue v) {
++    return cursors.back();
++  }
++  static bool valid(const ClassTypePtr& typ, size_t i, const IValue& v) {
++    return typ->is_parameter(i) && v.isTensor();
++  }
++  static CONSTEXPR_EXCEPT_WIN_CUDA bool all_slots = false;
++};
++
+ struct TORCH_API BufferPolicy {
+   using value_type = at::Tensor;
+   static value_type create(
+@@ -510,6 +534,20 @@ struct TORCH_API BufferPolicy {
+   static CONSTEXPR_EXCEPT_WIN_CUDA bool all_slots = false;
+ };
+ 
++struct TORCH_API MutableBufferPolicy {
++  using value_type = SlotCursor;
++  static value_type create(
++      const std::vector<detail::SlotCursor>& cursors,
++      IValue v) {
++    return cursors.back();
++  }
++  static bool valid(const ClassTypePtr& typ, size_t i, const IValue& v) {
++    return typ->getAttribute(i)->isSubtypeOf(TensorType::get()) &&
++        !typ->is_parameter(i);
++  }
++  static CONSTEXPR_EXCEPT_WIN_CUDA bool all_slots = false;
++};
++
+ struct TORCH_API AttributePolicy {
+   using value_type = IValue;
+   static value_type create(

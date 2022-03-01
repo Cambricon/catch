@@ -1,0 +1,27 @@
+diff --git a/aten/src/ATen/native/DispatchStub.h b/aten/src/ATen/native/DispatchStub.h
+index 14d9e1e..b0d7e50 100644
+--- a/aten/src/ATen/native/DispatchStub.h
++++ b/aten/src/ATen/native/DispatchStub.h
+@@ -74,6 +74,9 @@ struct CAFFE2_API DispatchStub<rT (*)(Args...), T> {
+             tmp_cpu_dispatch_ptr, choose_cpu_impl(), std::memory_order_relaxed));
+       }
+       return (*cpu_dispatch_ptr)(std::forward<ArgTypes>(args)...);
++    } else if (device_type == DeviceType::MLU) { 
++      AT_ASSERTM(mlu_dispatch_ptr, "DispatchStub: missing MLU kernel");
++      return (*mlu_dispatch_ptr)(std::forward<ArgTypes>(args)...);
+     } else if (device_type == DeviceType::CUDA) {
+       AT_ASSERTM(cuda_dispatch_ptr, "DispatchStub: missing CUDA kernel");
+       return (*cuda_dispatch_ptr)(std::forward<ArgTypes>(args)...);
+@@ -108,10 +111,12 @@ struct CAFFE2_API DispatchStub<rT (*)(Args...), T> {
+ // See https://github.com/pytorch/pytorch/issues/22681 for more details.
+ #if defined(_MSC_VER) && defined(_DEBUG)
+   std::atomic<FnPtr> cpu_dispatch_ptr;
++  FnPtr mlu_dispatch_ptr;
+   FnPtr cuda_dispatch_ptr;
+   FnPtr hip_dispatch_ptr;
+ #else
+   std::atomic<FnPtr> cpu_dispatch_ptr{nullptr};
++  FnPtr mlu_dispatch_ptr = nullptr;
+   FnPtr cuda_dispatch_ptr = nullptr;
+   FnPtr hip_dispatch_ptr = nullptr;
+ #endif

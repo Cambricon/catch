@@ -1,0 +1,531 @@
+diff --git a/torch/autograd/profiler.py b/torch/autograd/profiler.py
+index 7274bed..dea97b0 100644
+--- a/torch/autograd/profiler.py
++++ b/torch/autograd/profiler.py
+@@ -23,11 +23,13 @@ except ImportError:
+ class EventList(list):
+     """A list of Events (for pretty printing)"""
+     def __init__(self, *args, **kwargs):
+-        use_cuda = kwargs.pop('use_cuda', True)
++        use_mlu = kwargs.pop('use_mlu', False)
++        use_cuda = kwargs.pop('use_cuda', False)
+         profile_memory = kwargs.pop('profile_memory', False)
+         super(EventList, self).__init__(*args, **kwargs)
+         self._cpu_children_populated = False
+         self._use_cuda = use_cuda
++        self._use_mlu = use_mlu
+         self._profile_memory = profile_memory
+ 
+     def __str__(self):
+@@ -124,6 +126,7 @@ class EventList(list):
+             row_limit=row_limit,
+             header=header,
+             use_cuda=self._use_cuda,
++            use_mlu=self._use_mlu,
+             profile_memory=self._profile_memory)
+ 
+     def export_chrome_trace(self, path):
+@@ -140,7 +143,7 @@ class EventList(list):
+             next_id = 0
+             # Use file IO over using json.dump since JSON dumping is very slow and
+             # this technique is proven to give a 4x speedup.
+-            f.write("[")
++            f.write("[") if self else f.write("[ ")
+             for evt in self:
+                 f.write(
+                     '{"name": "%s", '
+@@ -161,32 +164,36 @@ class EventList(list):
+                 )
+                 for k in evt.kernels:
+                     # 's' and 'f' draw Flow arrows from
+-                    # the CPU launch to the GPU kernel
++                    # the CPU launch to the GPU and MLU kernel
+                     f.write('{"name": "%s", '
+                             '"ph": "s", '
+                             '"ts": %s, '
+                             '"tid": %s, '
+                             '"pid": "CPU functions", '
+                             '"id": %s, '
+-                            '"cat": "cpu_to_cuda", '
++                            '"cat": "cpu_to_%s", '
+                             '"args": {}}, ' % (evt.name, evt.cpu_interval.start,
+-                                               evt.thread, next_id))
++                                               evt.thread, next_id,
++                                               "mlu" if self._use_mlu else "cuda"))
+                     f.write('{"name": "%s", '
+                             '"ph": "f", '
+                             '"ts": %s, '
+                             '"tid": %s, '
+-                            '"pid": "CUDA functions", '
++                            '"pid": "%s functions", '
+                             '"id": %s, '
+-                            '"cat": "cpu_to_cuda", '
+-                            '"args": {}}, ' % (k.name, k.interval.start, k.device, next_id))
++                            '"cat": "cpu_to_%s", '
++                            '"args": {}}, ' % (k.name, k.interval.start, k.device,
++                                                "MLU" if self._use_mlu else "CUDA",
++                                                next_id, "mlu" if self._use_mlu else "cuda"))
+                     f.write('{"name": "%s", '
+                             '"ph": "X", '
+                             '"ts": %s, '
+                             '"dur": %s, '
+                             '"tid": %s, '
+-                            '"pid": "CUDA functions", '
++                            '"pid": "%s functions", '
+                             '"args": {}}, ' % (k.name, k.interval.start,
+-                                               k.interval.elapsed_us(), k.device))
++                                               k.interval.elapsed_us(), k.device,
++                                               "MLU" if self._use_mlu else "CUDA"))
+                     next_id += 1
+ 
+             # remove trailing whitespace and comma
+@@ -216,7 +223,7 @@ class EventList(list):
+         for evt in self:
+             stats[get_key(evt, group_by_input_shapes)].add(
+                 evt, group_by_input_shapes)
+-        return EventList(stats.values(), use_cuda=self._use_cuda, profile_memory=self._profile_memory)
++        return EventList(stats.values(), use_cuda=self._use_cuda, use_mlu=self._use_mlu, profile_memory=self._profile_memory)
+ 
+     def total_average(self):
+         """Averages all events.
+@@ -296,38 +303,67 @@ class profile(object):
+             self,
+             enabled=True,
+             use_cuda=False,
++            use_mlu=False,
+             record_shapes=False,
+             profile_memory=False):
+         self.enabled = enabled
+         self.use_cuda = use_cuda
++        self.use_mlu = use_mlu
+         self.function_events = None
+         if not self.enabled:
+             return
+         self.entered = False
+         self.record_shapes = record_shapes
+         self.profile_memory = profile_memory
++        self.profile_mlu_module = None
++
++        if self.use_mlu:
++            self.use_cuda = False
++            try:
++                import torch_mlu.core.profile.profile_mlu as profile_mlu
++                self.profile_mlu_module = profile_mlu
++            except ImportError:
++                raise ImportError("load torch_mlu failed, please install torch_mlu")
+ 
+     def __enter__(self):
+         if not self.enabled:
+             return
+         if self.entered:
+             raise RuntimeError("autograd profiler traces are not reentrant")
+-        self.entered = True
+-        profiler_kind = torch.autograd.ProfilerState.CUDA if self.use_cuda \
+-            else torch.autograd.ProfilerState.CPU
+ 
+-        config = torch.autograd.ProfilerConfig(profiler_kind, self.record_shapes, self.profile_memory)
+-        torch.autograd._enable_profiler(config)
++        if self.use_mlu:
++            if not self.profile_mlu_module:
++                return
++            profiler_kind = torch.autograd.ProfilerState.MLU
++            config = torch.autograd.ProfilerConfig(profiler_kind, self.record_shapes, self.profile_memory)
++            self.profile_mlu_module._enable_mlu_profiler(config)
++        else:
++            self.entered = True
++            profiler_kind = torch.autograd.ProfilerState.CUDA if self.use_cuda \
++                else torch.autograd.ProfilerState.CPU
++
++            config = torch.autograd.ProfilerConfig(profiler_kind, self.record_shapes, self.profile_memory)
++            torch.autograd._enable_profiler(config)
+         return self
+ 
+     def __exit__(self, exc_type, exc_val, exc_tb):
+         if not self.enabled:
+             return
+-        records = torch.autograd._disable_profiler()
+-        self.function_events = EventList(
+-            parse_cpu_trace(records),
+-            use_cuda=self.use_cuda,
+-            profile_memory=self.profile_memory)
++
++        if self.use_mlu:
++            if not self.profile_mlu_module:
++                return
++            records = self.profile_mlu_module._disable_mlu_profiler()
++            self.function_events = EventList(
++                parse_mlu_trace(records, self.profile_memory),
++                use_mlu=self.use_mlu,
++                profile_memory=self.profile_memory)
++        else:
++            records = torch.autograd._disable_profiler()
++            self.function_events = EventList(
++                parse_cpu_trace(records),
++                use_cuda=self.use_cuda,
++                profile_memory=self.profile_memory)
+         return False
+ 
+     def __repr__(self):
+@@ -618,8 +654,10 @@ class FormattedTimesMixin(object):
+     """
+     cpu_time_str = attr_formatter('cpu_time')
+     cuda_time_str = attr_formatter('cuda_time')
++    mlu_time_str = attr_formatter('mlu_time')
+     cpu_time_total_str = attr_formatter('cpu_time_total')
+     cuda_time_total_str = attr_formatter('cuda_time_total')
++    mlu_time_total_str = attr_formatter('mlu_time_total')
+     self_cpu_time_total_str = attr_formatter('self_cpu_time_total')
+ 
+     @property
+@@ -630,6 +668,10 @@ class FormattedTimesMixin(object):
+     def cuda_time(self):
+         return 0.0 if self.count == 0 else 1.0 * self.cuda_time_total / self.count
+ 
++    @property
++    def mlu_time(self):
++        return 0.0 if self.count == 0 else 1.0 * self.mlu_time_total / self.count
++
+ 
+ class Interval(object):
+     def __init__(self, start, end):
+@@ -647,7 +689,7 @@ class FunctionEvent(FormattedTimesMixin):
+     """Profiling information about a single function."""
+     def __init__(
+             self, id, node_id, name, thread, cpu_start, cpu_end, input_shapes=None,
+-            cpu_memory_usage=0, cuda_memory_usage=0, is_async=False, is_remote=True):
++            cpu_memory_usage=0, cuda_memory_usage=0, mlu_memory_usage=0, is_async=False, is_remote=True):
+         self.id = id
+         self.node_id = node_id
+         self.name = name
+@@ -659,6 +701,7 @@ class FunctionEvent(FormattedTimesMixin):
+         self.input_shapes = input_shapes
+         self.cpu_memory_usage = cpu_memory_usage
+         self.cuda_memory_usage = cuda_memory_usage
++        self.mlu_memory_usage = mlu_memory_usage
+         self.is_async = is_async
+         self.is_remote = is_remote
+ 
+@@ -693,6 +736,14 @@ class FunctionEvent(FormattedTimesMixin):
+         )
+ 
+     @property
++    def self_mlu_memory_usage(self):
++        if self.is_async:
++            return 0
++        return self.mlu_memory_usage - sum(
++            [child.mlu_memory_usage for child in self.cpu_children]
++        )
++
++    @property
+     def self_cpu_time_total(self):
+         if self.is_async:
+             return 0
+@@ -705,6 +756,10 @@ class FunctionEvent(FormattedTimesMixin):
+         return sum(kinfo.interval.elapsed_us() for kinfo in self.kernels)
+ 
+     @property
++    def mlu_time_total(self):
++        return sum(kinfo.interval.elapsed_us() for kinfo in self.kernels)
++
++    @property
+     def cpu_time_total(self):
+         return self.cpu_interval.elapsed_us()
+ 
+@@ -715,8 +770,8 @@ class FunctionEvent(FormattedTimesMixin):
+     def __repr__(self):
+         return (
+             '<FunctionEvent id={} node_id={} cpu_time={} cpu_start={} cpu_end={} '
+-            'cpu_children={} cuda_time={} name={} thread={} input_shapes={} '
+-            'cpu_memory_usage={} cuda_memory_usage={} is_async={} is_remote={}>'.format(
++            'cpu_children={} cuda_time={} mlu_time={} name={} thread={} input_shapes={} '
++            'cpu_memory_usage={} cuda_memory_usage={} mlu_memory_usage={} is_async={} is_remote={}>'.format(
+                 self.id,
+                 self.node_id,
+                 self.cpu_time_str,
+@@ -724,11 +779,13 @@ class FunctionEvent(FormattedTimesMixin):
+                 self.cpu_interval.end,
+                 str([child.id for child in self.cpu_children]),
+                 self.cuda_time_str,
++                self.mlu_time_str,
+                 self.name,
+                 self.thread,
+                 str(self.input_shapes),
+                 self.cpu_memory_usage,
+                 self.cuda_memory_usage,
++                self.mlu_memory_usage,
+                 self.is_async,
+                 self.is_remote,
+             )
+@@ -745,12 +802,15 @@ class FunctionEventAvg(FormattedTimesMixin):
+         self.is_remote = False
+         self.cpu_time_total = 0
+         self.cuda_time_total = 0
++        self.mlu_time_total = 0
+         self.self_cpu_time_total = 0
+         self.input_shapes = None
+         self.cpu_memory_usage = 0
+         self.cuda_memory_usage = 0
++        self.mlu_memory_usage = 0
+         self.self_cpu_memory_usage = 0
+         self.self_cuda_memory_usage = 0
++        self.self_mlu_memory_usage = 0
+ 
+     def add(self, other, group_by_input_shapes=False):
+         if self.key is None:
+@@ -771,11 +831,14 @@ class FunctionEventAvg(FormattedTimesMixin):
+         assert other.key == self.key
+         self.cpu_time_total += other.cpu_time_total
+         self.cuda_time_total += other.cuda_time_total
++        self.mlu_time_total += other.mlu_time_total
+         self.self_cpu_time_total += other.self_cpu_time_total
+         self.cpu_memory_usage += other.cpu_memory_usage
+         self.cuda_memory_usage += other.cuda_memory_usage
++        self.mlu_memory_usage += other.mlu_memory_usage
+         self.self_cpu_memory_usage += other.self_cpu_memory_usage
+         self.self_cuda_memory_usage += other.self_cuda_memory_usage
++        self.self_mlu_memory_usage += other.self_mlu_memory_usage
+         self.count += other.count
+         return self
+ 
+@@ -785,15 +848,17 @@ class FunctionEventAvg(FormattedTimesMixin):
+     def __repr__(self):
+         return (
+             '<FunctionEventAvg key={} self_cpu_time={} cpu_time={} '
+-            'cuda_time={} input_shapes={}> '
+-            'cpu_memory_usage={} cuda_memory_usage={}'.format(
++            'cuda_time={} mlu_time={} input_shapes={}> '
++            'cpu_memory_usage={} cuda_memory_usage={} mlu_memory_usage={}'.format(
+                 self.key,
+                 self.self_cpu_time_total_str,
+                 self.cpu_time_str,
+                 self.cuda_time_str,
++                self.mlu_time_str,
+                 str(self.input_shapes),
+                 self.cpu_memory_usage,
+                 self.cuda_memory_usage,
++                self.mlu_memory_usage,
+             )
+         )
+ 
+@@ -952,6 +1017,105 @@ def parse_cpu_trace(thread_records):
+ 
+ 
+ ################################################################################
++# MLU checkpoints
++
++def parse_mlu_trace(thread_records, profile_memory):
++    def convert_ns_to_us(time_ns):
++        return time_ns / 1000.0
++
++    def cal_cpu_memory_usage(thread_record_list, index, record_event):
++        elapse_record = record_event.elapse_event()
++        if elapse_record.id() in id_cpu_memory:
++            return id_cpu_memory[elapse_record.id()]
++
++        child_cpu_memory = record_event.cpu_memory_usage()
++        for child_id in elapse_record.children():
++            child_index = index + child_id - elapse_record.id()
++            child_record = thread_record_list[child_index]
++            assert child_id == child_record.elapse_event().id()
++            child_cpu_memory += cal_cpu_memory_usage(thread_record_list, child_index, child_record)
++        id_cpu_memory.update({elapse_record.id(): child_cpu_memory})
++        return child_cpu_memory
++
++    def cal_mlu_memory_usage(thread_record_list, index, record_event):
++        elapse_record = record_event.elapse_event()
++        if elapse_record.id() in id_mlu_memory:
++            return id_mlu_memory[elapse_record.id()]
++
++        child_mlu_memory = record_event.mlu_memory_usage()
++        for child_id in elapse_record.children():
++            child_index = index + child_id - elapse_record.id()
++            child_record = thread_record_list[child_index]
++            assert child_id == child_record.elapse_event().id()
++            child_mlu_memory += cal_mlu_memory_usage(thread_record_list, child_index, child_record)
++        id_mlu_memory.update({elapse_record.id(): child_mlu_memory})
++        return child_mlu_memory
++
++    functions = []
++    string_table = StringTable()
++    id_cpu_memory = {}
++    id_mlu_memory = {}
++
++    # ignoring the following utility ops
++    filtered_out_names = [
++        "profiler::_record_function_enter",
++        "profiler::_record_function_exit",
++        "is_leaf",
++        "output_nr",
++        "_version",
++        "cn_runtime",
++    ]
++
++    for thread_record_list in thread_records:
++        for index, record in enumerate(thread_record_list):
++            record_elapse_event = record.elapse_event()
++            if (record_elapse_event.type() in filtered_out_names):
++                continue
++
++            cpu_memory_usage = cal_cpu_memory_usage(thread_record_list, index, record) if profile_memory else 0
++            mlu_memory_usage = cal_mlu_memory_usage(thread_record_list, index, record) if profile_memory else 0
++
++            is_async = record_elapse_event.start_thread_id() != record_elapse_event.end_thread_id()
++            is_remote_event = False
++
++            fe = FunctionEvent(
++                id=record.handle(),
++                node_id=record.node_id(),
++                name=string_table[record_elapse_event.type()],
++                thread=record_elapse_event.start_thread_id(),
++                cpu_start=convert_ns_to_us(record_elapse_event.start_ns()),
++                cpu_end=convert_ns_to_us(record_elapse_event.end_ns()),
++                input_shapes=record.shapes(),
++                cpu_memory_usage=cpu_memory_usage,
++                mlu_memory_usage=mlu_memory_usage,
++                is_async=is_async,
++                is_remote=is_remote_event,
++            )
++
++            # note: async events have only cpu total time
++            if not is_async and record_elapse_event.parent() == -1 and record_elapse_event.device_events():
++                for device_event in record_elapse_event.device_events():
++                    mlu_start = convert_ns_to_us(device_event.start_ns())
++                    mlu_end = convert_ns_to_us(device_event.start_ns() + device_event.duration_ns())
++                    fe.append_kernel(
++                        device_event.name(),
++                        device_event.device_index(),
++                        mlu_start,
++                        mlu_end
++                    )
++            functions.append(fe)
++
++    # Sort functions by start time then by end time ascending.
++    # This ensures that--in the case of nested events which
++    # have the same start time (which may happen due to the
++    # granularity of the given clock tick)--we always show
++    # the outermost nested call first. This adds stability
++    # in how FunctionEvents appear
++    functions.sort(key=lambda evt: [evt.cpu_interval.start, -evt.cpu_interval.end])
++    return functions
++
++
++################################################################################
+ # CUDA checkpoints
+ 
+ class EnforceUnique(object):
+@@ -1038,6 +1202,7 @@ def build_table(
+         header=None,
+         row_limit=100,
+         use_cuda=True,
++        use_mlu=True,
+         profile_memory=False):
+     """Prints a summary of events (which can be a list of FunctionEvent or FunctionEventAvg)."""
+     if len(events) == 0:
+@@ -1046,7 +1211,7 @@ def build_table(
+     if sort_by is not None:
+         events = EventList(sorted(
+             events, key=lambda evt: getattr(evt, sort_by), reverse=True
+-        ), use_cuda=use_cuda, profile_memory=profile_memory)
++        ), use_cuda=use_cuda, use_mlu=use_mlu, profile_memory=profile_memory)
+ 
+     has_input_shapes = any(
+         [event.input_shapes is not None for event in events])
+@@ -1068,6 +1233,12 @@ def build_table(
+             'CUDA total',
+             'CUDA time avg',
+         ])
++    if use_mlu:
++        headers.extend([
++            'MLU total %',
++            'MLU total',
++            'MLU time avg',
++        ])
+     if profile_memory:
+         headers.extend([
+             'CPU Mem',
+@@ -1078,6 +1249,11 @@ def build_table(
+                 'CUDA Mem',
+                 'Self CUDA Mem',
+             ])
++        if use_mlu:
++            headers.extend([
++                'MLU Mem',
++                'Self MLU Mem',
++            ])
+     headers.append(
+         'Number of Calls'
+     )
+@@ -1118,7 +1294,11 @@ def build_table(
+         result.append('\n')  # Yes, newline after the end as well
+ 
+     self_cpu_time_total = sum([event.self_cpu_time_total for event in events])
+-    cuda_time_total = sum([evt.cuda_time_total for evt in events])
++    if use_cuda:
++        cuda_time_total = sum([evt.cuda_time_total for evt in events])
++    if use_mlu:
++        mlu_time_total = sum([evt.mlu_time_total for evt in events])
++
+     # Actual printing
+     if header is not None:
+         append('=' * line_length)
+@@ -1148,6 +1328,13 @@ def build_table(
+                 evt.cuda_time_total_str,
+                 evt.cuda_time_str,  # Cuda time avg
+             ])
++        if use_mlu:
++            row_values.extend([
++                # MLU time total %
++                format_time_share(evt.mlu_time_total, mlu_time_total),
++                evt.mlu_time_total_str,
++                evt.mlu_time_str,  # MLU time avg
++            ])
+         if profile_memory:
+             row_values.extend([
+                 # CPU Mem Total
+@@ -1162,6 +1349,13 @@ def build_table(
+                     # Self CUDA Mem Total
+                     format_memory(evt.self_cuda_memory_usage),
+                 ])
++            if use_mlu:
++                row_values.extend([
++                    # MLU Mem Total
++                    format_memory(evt.mlu_memory_usage),
++                    # Self MLU Mem Total
++                    format_memory(evt.self_mlu_memory_usage),
++                ])
+         row_values.append(
+             evt.count,  # Number of calls
+         )
+@@ -1176,4 +1370,6 @@ def build_table(
+     append("Self CPU time total: {}".format(format_time(self_cpu_time_total)))
+     if use_cuda:
+         append("CUDA time total: {}".format(format_time(cuda_time_total)))
++    if use_mlu:
++        append("MLU time total: {}".format(format_time(mlu_time_total)))
+     return ''.join(result)
+diff --git a/torch/csrc/autograd/init.cpp b/torch/csrc/autograd/init.cpp
+index 197cc1c..9b237c8 100644
+--- a/torch/csrc/autograd/init.cpp
++++ b/torch/csrc/autograd/init.cpp
+@@ -34,7 +34,8 @@ PyObject* THPAutograd_initExtension(PyObject* _unused, PyObject *unused) {
+       .value("Disabled", ProfilerState::Disabled)
+       .value("CPU", ProfilerState::CPU)
+       .value("CUDA", ProfilerState::CUDA)
+-      .value("NVTX", ProfilerState::NVTX);
++      .value("NVTX", ProfilerState::NVTX)
++      .value("MLU", ProfilerState::MLU);
+ 
+   py::class_<ProfilerConfig>(m, "ProfilerConfig")
+       .def(py::init<ProfilerState, bool, bool>());
+diff --git a/torch/csrc/autograd/profiler.h b/torch/csrc/autograd/profiler.h
+index aafb630..65d30a3 100644
+--- a/torch/csrc/autograd/profiler.h
++++ b/torch/csrc/autograd/profiler.h
+@@ -99,6 +99,7 @@ enum class TORCH_API ProfilerState {
+     CPU, // CPU-only profiling
+     CUDA, // CPU + CUDA events
+     NVTX,  // only emit NVTX markers
++    MLU,  // CPU + MLU events
+ };
+ 
+ struct TORCH_API ProfilerConfig {

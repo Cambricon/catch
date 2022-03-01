@@ -1,0 +1,11 @@
+{
+  "version": "1.1.2-1",
+  "driver_requires": ["release", "4.15.12-1"],
+  "build_requires": {
+    "cnnl": ["release", "1.8.2-1"],
+    "cntoolkit": ["release","2.6.4-1"],
+    "cncl": ["release", "1.0.1-1"],
+    "cnlight": ["release", "0.9.0-1"],
+    "magicmind": ["release", "0.7.1-1"]},
+  "package_type": ["whl", "docker"]
+}

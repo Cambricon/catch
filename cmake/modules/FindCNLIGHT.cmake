@@ -1,0 +1,31 @@
+# - Try to find CNLIGHT
+#
+# The following are set after configuration is done:
+#  CNLIGHT_FOUND
+#  CNLIGHT_INCLUDE_DIRS
+#  CNLIGHT_LIBRARIES
+
+include(FindPackageHandleStandardArgs)
+
+SET(CNLIGHT_LIB_SEARCH_PATHS $ENV{NEUWARE_HOME}/lib64)
+SET(CNLIGHT_INCLUDE_SEARCH_PATHS $ENV{NEUWARE_HOME}/include)
+
+find_library(CNLIGHT_LIBRARY NAMES cnlight
+             PATHS ${CNLIGHT_LIB_SEARCH_PATHS}
+             NO_DEFAULT_PATH)
+find_library(CNLIGHT_LIBRARY NAMES cnlight
+             NO_CMAKE_FIND_ROOT_PATH)
+
+find_path(CNLIGHT_INCLUDE_DIR NAMES cnlight.h
+          PATHS ${CNLIGHT_INCLUDE_SEARCH_PATHS}
+          NO_DEFAULT_PATH)
+find_path(CNLIGHT_INCLUDE_DIR NAMES cnlight.h
+          NO_CMAKE_FIND_ROOT_PATH)
+
+find_package_handle_standard_args(CNLIGHT DEFAULT_MSG CNLIGHT_INCLUDE_DIR CNLIGHT_LIBRARY)
+
+if(CNLIGHT_FOUND)
+  set(CNLIGHT_INCLUDE_DIRS ${CNLIGHT_INCLUDE_DIR})
+  set(CNLIGHT_LIBRARIES ${CNLIGHT_LIBRARY})
+  mark_as_advanced(CNLIGHT_INCLUDE_DIR CNLIGHT_LIBRARY)
+endif()

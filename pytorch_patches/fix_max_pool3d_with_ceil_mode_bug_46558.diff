@@ -1,0 +1,35 @@
+diff --git a/aten/src/ATen/native/Pool.h b/aten/src/ATen/native/Pool.h
+index 5006bb6..1edf5a7 100644
+--- a/aten/src/ATen/native/Pool.h
++++ b/aten/src/ATen/native/Pool.h
+@@ -28,11 +28,12 @@ static inline T pooling_output_shape_pad_lr(
+     T outputSize = div_rtn<T>(
+         inputSize + pad_l + pad_r - dilation * (kernelSize - 1) - 1 +
+         (ceil_mode ? stride - 1 : 0), stride) + 1;
+-    if (pad_l) {
++    if (ceil_mode) {
+         // ensure that the last pooling starts inside the image
+         // needed to avoid problems in ceil mode
+-        if ((outputSize - 1) * stride >= inputSize + pad_l)
++        if ((outputSize - 1) * stride >= inputSize + pad_l) {
+           --outputSize;
++        }
+     }
+     return outputSize;
+ }
+diff --git a/test/quantization/test_quantized_op.py b/test/quantization/test_quantized_op.py
+index 9632b2d..8e114c1 100644
+--- a/test/quantization/test_quantized_op.py
++++ b/test/quantization/test_quantized_op.py
+@@ -86,9 +86,9 @@ def pool_output_shape(input_size, kernel_size, padding, stride,
+     output_size = (
+         (input_size + 2 * padding - dilation * (kernel_size - 1) - 1
+          + (stride - 1 if ceiling_mode else 0)) // stride + 1)
+-    if (padding > 0 and
++    if (ceiling_mode and
+             ((output_size - 1) * stride >= input_size + padding)):
+-        output_size += 1
++        output_size -= 1
+     return output_size
+ 
+ """

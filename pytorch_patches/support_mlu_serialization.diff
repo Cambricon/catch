@@ -1,0 +1,20 @@
+diff --git a/torch/tensor.py b/torch/tensor.py
+index 4b981fc..b78d63e 100644
+--- a/torch/tensor.py
++++ b/torch/tensor.py
+@@ -89,6 +89,15 @@ class Tensor(torch._C._TensorBase):
+                     str(self.device),
+                     self.requires_grad)
+             return (torch._utils._rebuild_xla_tensor, args)
++        # Note: Serialize mlu Tensor by copying to cpu.
++        if self.device.type == 'mlu':
++            args = (self.cpu().storage(),
++                    self.storage_offset(),
++                    tuple(self.size()),
++                    self.stride(),
++                    self.requires_grad,
++                    OrderedDict())
++            return (torch._utils._rebuild_tensor_v2, args)
+         if self.is_quantized:
+             if self.qscheme() == torch.per_tensor_affine:
+                 quantizer_params = (torch.per_tensor_affine,

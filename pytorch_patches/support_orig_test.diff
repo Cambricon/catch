@@ -1,0 +1,77 @@
+diff --git a/torch/testing/__init__.py b/torch/testing/__init__.py
+index d29d299..96318c4 100644
+--- a/torch/testing/__init__.py
++++ b/torch/testing/__init__.py
+@@ -68,6 +68,10 @@ _compare_return_type = Tuple[bool, Optional[str]]
+ #   the rtol and atol values.
+ def _compare_tensors_internal(a: torch.Tensor, b: torch.Tensor, *, rtol, atol, equal_nan: bool) -> _compare_return_type:
+     debug_msg : Optional[str]
++    if (a.device.type == "mlu"):
++        a = a.cpu()
++    if (b.device.type == "mlu"):
++        b = b.cpu()
+     # Integer (including bool) comparisons are identity comparisons
+     # when rtol is zero and atol is less than one
+     if (is_integral(a.dtype) and rtol == 0 and atol < 1) or a.dtype is torch.bool:
+diff --git a/torch/testing/_internal/common_device_type.py b/torch/testing/_internal/common_device_type.py
+index 9e61cb2..0bb8a9e 100644
+--- a/torch/testing/_internal/common_device_type.py
++++ b/torch/testing/_internal/common_device_type.py
+@@ -16,6 +16,9 @@ try:
+ except ImportError:
+     HAS_PSUTIL = False
+ 
++if torch.is_mlu_available():
++    import torch_mlu
++    import torch_mlu.core.mlu_model as ct
+ # Note: Generic Device-Type Testing
+ #
+ # [WRITING TESTS]
+@@ -286,11 +289,33 @@ class CUDATestBase(DeviceTypeTestBase):
+         # Acquires the current device as the primary (test) device
+         cls.primary_device = 'cuda:{0}'.format(torch.cuda.current_device())
+ 
++class MLUTestBase(DeviceTypeTestBase):
++    device_type = 'mlu'
++
++    @classmethod
++    def get_primary_device(cls):
++        if hasattr(cls, "primary_device"):
++            return cls.primary_device
++        else:
++            cls.primary_device = 'mlu:{0}'.format(ct.current_device())
++            return cls.primary_device
++
++    @classmethod
++    def get_all_devices(cls):
++        primary_device_idx = int(cls.get_primary_device().split(':')[1])
++        num_devices = ct.device_count()
++
++        prim_device = cls.get_primary_device()
++        mlu_str = 'mlu:{0}'
++        non_primary_devices = [mlu_str.format(idx) for idx in range(num_devices) if idx != primary_device_idx]
++        return [prim_device] + non_primary_devices
+ 
+ # Adds available device-type-specific test base classes
+ device_type_test_bases.append(CPUTestBase)
+ if torch.cuda.is_available():
+     device_type_test_bases.append(CUDATestBase)
++if torch.is_mlu_available():
++    device_type_test_bases.append(MLUTestBase)
+ 
+ 
+ # Note [How to extend DeviceTypeTestBase to add new test device]
+diff --git a/torch/_overrides.py b/torch/_overrides.py
+index 2eb510a..2c266f0 100644
+--- a/torch/_overrides.py
++++ b/torch/_overrides.py
+@@ -35,6 +35,8 @@ def get_ignored_functions():
+
+     """
+     return (
++        torch.empty_pinned,
++        torch.is_mlu_available,
+         torch.typename,
+         torch.is_tensor,
+         torch.is_storage,
+

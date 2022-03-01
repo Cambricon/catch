@@ -1,0 +1,21 @@
+diff --git a/aten/src/ATen/native/TensorCompare.cpp b/aten/src/ATen/native/TensorCompare.cpp
+index f08498b..cd324fd 100644
+--- a/aten/src/ATen/native/TensorCompare.cpp
++++ b/aten/src/ATen/native/TensorCompare.cpp
+@@ -97,6 +97,16 @@ Tensor isinf(const Tensor &self) {
+ }
+
+ Tensor isfinite(const Tensor& self) {
++  // Cambricon MLU Patch
++  if (self.device().type() == c10::DeviceType::MLU) {
++    auto tmp = ([&]() {
++      at::AutoNonVariableTypeMode non_var_type_mode(true);
++      return at::isfinite(self);
++    })();
++    return tmp;
++  }
++  // End of Cambricon MLU Patch
++
+   // Note: Integral tensor values are always finite
+   if (c10::isIntegralType(self.scalar_type(), /*include_bool=*/true)) {
+     return at::ones_like(self, at::kBool, at::MemoryFormat::Preserve);

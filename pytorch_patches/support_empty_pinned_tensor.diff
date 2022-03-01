@@ -1,0 +1,30 @@
+diff --git a/aten/src/ATen/native/TensorFactories.cpp b/aten/src/ATen/native/TensorFactories.cpp
+index f0f7b60..339223c 100644
+--- a/aten/src/ATen/native/TensorFactories.cpp
++++ b/aten/src/ATen/native/TensorFactories.cpp
+@@ -307,6 +307,10 @@ Tensor new_empty(
+   return at::empty(size, self.options().merge_in(options));
+ }
+ 
++// default empty pinned memory for CUDA usage 
++Tensor empty_pinned(IntArrayRef size, const TensorOptions& options) {
++  return at::empty(size, options);
++}
+ // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ eye ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ Tensor eye(int64_t n, const TensorOptions& options) {
+diff --git a/aten/src/ATen/native/native_functions.yaml b/aten/src/ATen/native/native_functions.yaml
+index 859c877..3b92f45 100644
+--- a/aten/src/ATen/native/native_functions.yaml
++++ b/aten/src/ATen/native/native_functions.yaml
+@@ -2149,6 +2149,10 @@
+   use_c10_dispatcher: full
+   variants: method
+ 
++- func: empty_pinned(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
++  dispatch:
++    CPU: empty_pinned
++
+ - func: pinverse(Tensor self, float rcond=1e-15) -> Tensor
+   use_c10_dispatcher: full
+   variants: function, method

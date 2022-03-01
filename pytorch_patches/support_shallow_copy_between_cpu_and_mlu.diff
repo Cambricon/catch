@@ -1,0 +1,21 @@
+diff --git a/torch/csrc/autograd/VariableTypeManual.cpp b/torch/csrc/autograd/VariableTypeManual.cpp
+index 794689a..19e1abe 100644
+--- a/torch/csrc/autograd/VariableTypeManual.cpp
++++ b/torch/csrc/autograd/VariableTypeManual.cpp
+@@ -90,10 +90,12 @@ void set_data(const Tensor & self, const Tensor & new_data) {
+   // `var.set_data(new_data)` shallow-copies all non-autograd TensorImpl fields
+   // from `new_data` to `var`. It requires that `new_data` and `var` have compatible
+   // tensor type.
+-  TORCH_CHECK(
+-    _has_compatible_shallow_copy_type(self, new_data),
+-    "Attempted to call `variable.set_data(tensor)`, but `variable` and `tensor` have incompatible tensor type.");
+-
++  if (!((new_data.device().type() == c10::DeviceType::CPU && self.device().type() == c10::DeviceType::MLU) ||
++        (new_data.device().type() == c10::DeviceType::MLU && self.device().type() == c10::DeviceType::CPU))) {
++    TORCH_CHECK(
++      _has_compatible_shallow_copy_type(self, new_data),
++      "Attempted to call `variable.set_data(tensor)`, but `variable` and `tensor` have incompatible tensor type.");
++  }
+   // Resets gradient accumulator if metadata is out of date
+   AutogradMeta* autograd_meta = impl::get_autograd_meta(self);
+   if (autograd_meta) {

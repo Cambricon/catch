@@ -1,0 +1,15 @@
+diff --git a/aten/src/ATen/native/TensorIterator.cpp b/aten/src/ATen/native/TensorIterator.cpp
+index caeb86b..0e224b5 100644
+--- a/aten/src/ATen/native/TensorIterator.cpp
++++ b/aten/src/ATen/native/TensorIterator.cpp
+@@ -224,6 +224,10 @@ void TensorIterator::compute_types(const TensorIteratorConfig& config) {
+         TORCH_CHECK(current_cpu_scalars_on_cuda < max_cpu_scalars_on_cuda,
+                     "Trying to pass too many CPU scalars to CUDA kernel!");
+         ++current_cpu_scalars_on_cuda;
++      } else if (common_device.type() == at::kMLU && op.tensor.dim() == 0 && op.tensor.device().is_cpu()) {
++        TORCH_CHECK(current_cpu_scalars_on_cuda < max_cpu_scalars_on_cuda,
++                    "Trying to pass too many CPU scalars to MLU kernel!");
++        ++current_cpu_scalars_on_cuda;
+       } else if (op.device != common_device) {
+         TORCH_CHECK(false,
+                     "Expected all tensors to be on the same device, but "

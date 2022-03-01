@@ -1,0 +1,142 @@
+#/*************************************************************************
+# * All modification made by Cambricon Corporation: © 2022 Cambricon Corporation
+# * All rights reserved.
+# * All other contributions:
+# * Copyright (c) 2014--2022, the respective contributors
+# * All rights reserved.
+# * For the list of contributors go to https://github.com/pytorch/pytorch/graphs/contributors
+# * Redistribution and use in source and binary forms, with or without
+# * modification, are permitted provided that the following conditions are met:
+# *     * Redistributions of source code must retain the above copyright notice,
+# *       this list of conditions and the following disclaimer.
+# *     * Redistributions in binary form must reproduce the above copyright
+# *       notice, this list of conditions and the following disclaimer in the
+# *       documentation and/or other materials provided with the distribution.
+# *     * Neither the name of Intel Corporation nor the names of its contributors
+# *       may be used to endorse or promote products derived from this software
+# *       without specific prior written permission.
+# * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+# * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# *************************************************************************/
+
+# 1. build image
+#   a. make sure the neuware_home is in your current directory .
+#   b. bash docker/docker_build.sh -r docker -d open_pytorch_centos76 -t open_bata -f docker/open_dockerfile.base_centos7.6.framework .
+# 2. start container: docker run --privileged --device /dev/cambricon_dev0 --device /dev/cambricon_dev1  --device /dev/cambricon_dev2 --device /dev/cambricon_dev3 --device /dev/cambricon_dev4 --device /dev/cambricon_dev5 --device /dev/cambricon_dev6 --device /dev/cambricon_dev7 --device /dev/cambricon_ctl -v /usr/bin/cnmon:/usr/bin/cnmon  -it --net=host --shm-size="100g" XXXXXXXX /bin/bash
+
+FROM centos:7.6.1810
+#shell
+SHELL ["/bin/bash", "-c"]
+
+######################start build base env####################
+# change to tsinghua mirror
+RUN yum install centos-release-scl-rh epel-release -y
+RUN sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+        -e 's|^#baseurl=http://mirror.centos.org|baseurl=https://mirrors.tuna.tsinghua.edu.cn|g' \
+        -i.bak \
+        /etc/yum.repos.d/CentOS-*.repo
+RUN echo "$(sed '$a nameserver 8.8.8.8' /etc/resolv.conf)" > /etc/resolv.conf
+RUN yum clean all && yum makecache
+
+#install base package
+RUN yum install devtoolset-7 -y && \
+    scl enable devtoolset-7 bash
+ENV PATH=/opt/rh/devtoolset-7/root/bin:$PATH
+ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:/opt/rh/devtoolset-7/root/usr/lib64/dyninst:/opt/rh/devtoolset-7/root/usr/lib/dyninst:/opt/rh/devtoolse#
+ENV CC=/opt/rh/devtoolset-7/root/usr/bin/gcc
+ENV CXX=/opt/rh/devtoolset-7/root/usr/bin/g++
+
+RUN yum install -y git make cmake cmake3 wget zlib-devel bzip2-devel openssl-devel ncurese-devel bzip2 gflags-devel \
+    sqlite-devel readline-devel tk-devel tcl-devel boost-devel libSM tkinter patch opencv opencv-devel glog glog-devel openblas-devel \
+    gdbm-devel xz-devel
+
+# set env
+ENV LANG C.UTF-8
+ENV LC_ALL='en_US.UTF-8'
+
+RUN cd /tmp && \
+    wget https://www.python.org/ftp/python/3.6.12/Python-3.6.12.tar.xz && \
+    tar xvf Python-3.6.12.tar.xz && \
+    cd Python-3.6.12 && \
+    ./configure --prefix=/opt/py3.6 --enable-ipv6 --with-ensurepip=no  --with-computed-gotos --with-system-ffi --enable-loadable-sqlite-extensions --with-tcltk-includes=-I/opt/py3.6/include '--with-tcltk-libs=-L/opt/py3.6/lib -ltcl8.6 -ltk8.6' --enable-optimizations --with-lto --enable-shared 'CFLAGS=-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -pipe' 'LDFLAGS=-Wl,-O2 -Wl,--sort-common -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,-rpath,/opt/py3.6/lib -L/opt/py3.6/lib' 'CPPFLAGS=-DNDEBUG -D_FORTIFY_SOURCE=2 -O2 -I/opt/py3.6/include' PKG_CONFIG_PATH=/opt/py3.6/lib/pkgconfig --with-ensurepip=install && \
+    make -j && \
+    make altinstall && \
+    rm /tmp/Python-3.6.12.tar.xz && \
+    rm -rf /tmp/Python-3.6.12
+ENV CPLUS_INCLUDE_PATH=/opt/py3.6/include/python3.6m:$CPLUS_INCLUDE_PATH
+ENV C_INCLUDE_PATH=/opt/py3.6/include/python3.6m:$C_INCLUDE_PATH
+
+# set ln
+RUN /opt/py3.6/bin/pip3.6 install virtualenv && \
+    ln -sf /opt/py3.6/bin/python3.6 /usr/bin/python3 && \
+    ln -sf /opt/py3.6/bin/pip3.6 /usr/bin/pip && \
+    ln -sf /opt/py3.6/bin/virtualenv /usr/bin/virtualenv
+
+# fetch and install bazel
+ARG BAZEL_VERSION="3.4.1"
+RUN wget -O ~/bazel.sh https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh && \
+    chmod +x ~/bazel.sh && \
+    ~/bazel.sh && \
+    rm -f ~/bazel.sh
+
+# Install Open MPI
+ENV MPI_HOME=/usr/local/openmpi
+ENV PATH=${MPI_HOME}/bin:$PATH
+ENV LD_LIBRARY_PATH=${MPI_HOME}/lib:$LD_LIBRARY_PATH
+
+RUN mkdir -p $MPI_HOME
+RUN cd /tmp && \
+    yum -y install bzip2 && \
+    wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.0.tar.bz2 && \
+    tar -jxvf openmpi-4.1.0.tar.bz2 && \
+    cd openmpi-4.1.0 && \
+    ./configure --prefix=$MPI_HOME --enable-orterun-prefix-by-default && \
+    make -j && \
+    make install && \
+    rm /tmp/openmpi-4.1.0.tar.bz2 && \
+    rm -rf /tmp/openmpi-4.1.0
+######################stop build base env####################
+
+# copy neuware_home to docker 
+COPY neuware_home /torch/neuware_home
+
+# git clone code
+ARG catch_branch="master"
+ARG vision_branch="v0.7.0"
+ARG pytorch_branch="v1.6.0"
+ARG pytorch_models_branch="master"
+
+RUN mkdir -p /torch/src && \
+    pushd /torch/src && \
+    echo $catch_branch $vision_branch $pytorch_branch $pytorch_models_branch && \
+    git clone https://github.com/pytorch/pytorch.git -b $pytorch_branch --depth 1 && pushd pytorch && git submodule update --init --recursive && popd && \
+    git clone https://github.com/Cambricon/catch.git -b $catch_branch --depth 1 && \
+    git clone https://github.com/pytorch/vision.git -b $vision_branch --depth 1 && \
+    git clone https://github.com/Cambricon/pytorch_models.git -b $pytorch_models_branch --depth 1
+
+# set env
+ENV NEUWARE_HOME=/torch/neuware_home
+ENV USE_NINJA=OFF
+ENV LD_LIBRARY_PATH=${NEUWARE_HOME}/lib64:$LD_LIBRARY_PATH
+ENV PYTORCH_HOME=/torch/src/pytorch
+ENV TORCH_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fvisibility=hidden -Wl,--exclude-libs,ALL"
+ENV CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0"
+ENV GLIBCXX_USE_CXX11_ABI=0
+
+RUN pushd /torch/src/catch/script && ./apply_patches_to_pytorch.sh && popd
+
+# build torch-py3
+RUN pushd /torch && /opt/py3.6/bin/pip3.6 install virtualenv && /opt/py3.6/bin/virtualenv -p /opt/py3.6/bin/python3.6 venv3/pytorch
+RUN source /torch/venv3/pytorch/bin/activate && pushd /torch/src/pytorch && pip install -r requirements.txt
+RUN source /torch/venv3/pytorch/bin/activate && pushd /torch/src/pytorch && python setup.py bdist_wheel && pip install dist/*.whl
+RUN source /torch/venv3/pytorch/bin/activate && pushd /torch/src/catch && pip install -r requirements.txt
+RUN source /torch/venv3/pytorch/bin/activate && pushd /torch/src/catch && python setup.py bdist_wheel && pip install dist/*.whl
+RUN source /torch/venv3/pytorch/bin/activate && pushd /torch/src/vision && python setup.py bdist_wheel && pip install dist/*.whl

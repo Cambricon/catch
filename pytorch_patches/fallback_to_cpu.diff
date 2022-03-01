@@ -1,0 +1,1071 @@
+diff --git a/aten/src/ATen/core/boxing/KernelFunction_impl.h b/aten/src/ATen/core/boxing/KernelFunction_impl.h
+index 7ac52921cb..d5206fa434 100644
+--- a/aten/src/ATen/core/boxing/KernelFunction_impl.h
++++ b/aten/src/ATen/core/boxing/KernelFunction_impl.h
+@@ -49,7 +49,12 @@ inline Return KernelFunction::call(const OperatorHandle& opHandle, Args... args)
+     }
+ 
+     TORCH_INTERNAL_ASSERT_DEBUG_ONLY(boxed_kernel_func_ != nullptr, "Tried to call KernelFunction::call() on an uninitialized KernelFunction.");
+-    return impl::boxAndCallBoxedFunc<Return, Args...>(boxed_kernel_func_, functor_.get(), opHandle, std::forward<Args>(args)...);
++    return impl::BoxedKernelWrapper<Return(Args...)>::call(
++        boxed_kernel_func_,
++        functor_.get(),
++        opHandle,
++        std::forward<Args>(args)...
++    );
+ }
+ 
+ template<KernelFunction::BoxedKernelFunction* func>
+diff --git a/aten/src/ATen/core/boxing/impl/boxing.h b/aten/src/ATen/core/boxing/impl/boxing.h
+index 778d81b42a..1433332fcc 100644
+--- a/aten/src/ATen/core/boxing/impl/boxing.h
++++ b/aten/src/ATen/core/boxing/impl/boxing.h
+@@ -7,6 +7,36 @@
+ #include <c10/core/TensorOptions.h>
+ #include <ATen/core/boxing/KernelFunction.h>
+ 
++#include <c10/util/Metaprogramming.h>
++#include <c10/util/C++17.h>
++// please do not remove the following include directive, the inclusion
++// of Quantizer.h is an obliged workaround just to gratify the compiler,
++// otherwise when analyzing a boxed wrapper for set_quantizer_ (defined
++// in TraceType_2.cpp), it would eventually enter the BoxedKernelWrapper
++// instantiation 5.b. then complain(at compile time) that it cannot do
++// with an incomplete Quantizer when doing is_base_of<Base, Quantizer> (I
++// had expected the entry to be 3b, but it didn't turn out so. weird!)
++// To resolve this issue, I first devised a utility is_complete<...> in
++// hope that 'can_box_all<Args...>' in the definition 5.b could be
++// short-circuited so that 'is_base_of' won't be triggered, but that
++// approach does not work either, (it should have worked because
++// is_complete<...> is designed to discriminate incomplete types)
++// As a last resort, I included Quantizer.h to bring the definition of
++// Quantizer into the vision of the current scope, thus the incomplete
++// type complaint can be removed.
++// please note that this workaround might only be needed in the current
++// version of pytorch 1.6, which has quite a few forward declarations,
++// and might be the source of our trouble, in later versions of pytorch,
++// both the Quantizer and the boxing mechanism, as well as the operators
++// call conventions are refactored, which would remove a lot of forward
++// declarations and make life a lot easier.
++// Adding boxed-call wrapperd for inplace operators
++// in the current version of pytorch is an experience full of frustrations,
++// fortunately with the settlement of the Quantizer issue,
++// we are finally starting to drag out of the mire.
++// -- by Songyun Gao
++#include <ATen/quantized/Quantizer.h>
++
+ namespace at {
+ struct Dimname;
+ }
+@@ -14,66 +44,517 @@ struct Dimname;
+ namespace c10 {
+ namespace impl {
+ 
+-// Assume T is decayed
++//
++// utils
++//
++
++
++// type extractor
++
++template <class T>
++struct WieldExtractor{
++   using type = T;
++};
++
++
++template <class T>
++struct WieldExtractor<T&>{
++   using type = T;
++};
++/*
++template<template<typename> typename C, typename E>
++struct WieldExtractor<C<E>>{
++   using type = std::decay_t<E>;
++};
++
++template<template<typename> typename C, typename E>
++struct WieldExtractor<C<E>&>{
++   using type = std::decay_t<E>;
++};
++
++template<template<typename, typename> typename C, typename E1, typename E2>
++struct WieldExtractor<C<E1, E2>>{
++   using type = std::decay_t<E1>;
++};
++
++
++template<template<typename, typename> typename C, typename E1, typename E2>
++struct WieldExtractor<C<E1, E2>&>{
++   using type = std::decay_t<E1>;
++};
++*/
++// type complete discriminator
++
++template <class T, class Enable = void>
++struct is_complete : std::false_type {};
++
++template <class T>
++//struct is_complete<T, std::enable_if_t<sizeof(std::decay_t<T>)!=0, void>> : std::true_type {};
++struct is_complete<T, guts::void_t<decltype(sizeof(T))>> : std::true_type {};
++
++
++
++
++
++template <typename... Args>
++using is_all_complete = guts::conjunction<is_complete<Args>...>;
++
++// is_mutable_tensor_ref
++template <class T> struct is_mutable_tensor_ref : std::false_type {};
++template <> struct is_mutable_tensor_ref<at::Tensor&> : std::true_type {};
++
++// is_tuple_of_mutable_tensor_refs
++//
++template <class T, class Enable = void>
++struct is_tuple_of_mutable_tensor_refs : std::false_type {};
++
++template <class T>
++struct is_tuple_of_mutable_tensor_refs<T, std::enable_if_t<guts::is_instantiation_of<std::tuple, T>::value, void>>
++: guts::typelist::all<is_mutable_tensor_ref, guts::typelist::from_tuple_t<T>>
++{};
++
++// has_ivalue_to<T> tests the presence/absence of instance method IValue::to<T>()
++//
++template <class T, class Enable = void>
++struct has_ivalue_to : std::false_type {};
++
++template <class T>
++struct has_ivalue_to<T, guts::void_t<decltype(std::declval<IValue>().to<T>())>>
++: std::true_type
++{};
++
++//
++// boxing predicates
++//
++
++// A boxable arg type is one that IValue has a constructor for.
+ template <typename T>
+-using not_ok_to_box = guts::negation<guts::disjunction<
+-    std::is_constructible<IValue, T>,
++using can_box =
++  guts::disjunction<
++    std::is_constructible<IValue, std::decay_t<T>>,
+     // TensorOptions are not directly constructible into IValue,
+     // but torch::jit::push knows how to handle them
+-    std::is_same<TensorOptions, T>,
+-    // void returns are ok
+-    std::is_same<void, T>>>;
++    std::is_same<TensorOptions, std::decay_t<T>>
++  >;
+ 
+-// TODO boxing should be ok for all kernels. Then remove not_ok_to_box and supports_boxing.
+-
+-template <class Result, class... Args>
+-using supports_boxing =
+-  guts::negation<guts::disjunction<
+-    std::is_lvalue_reference<Result>,
+-    not_ok_to_box<Result>,
+-    std::is_same<IntArrayRef, Result>,
+-    not_ok_to_box<std::decay_t<Args>>...
+-  >>;
+-
+-template<class Result, class... Args>
+-Result boxAndCallBoxedFunc(KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func, OperatorKernel* functor, const OperatorHandle& opHandle, Args... args, std::enable_if_t<!supports_boxing<Result, Args...>::value, int> = 0) {
+-  // Some kernels don't need to actually box, and don't return.  If that's the
+-  // case, just call them anyway without a stack.  These special cases can be
+-  // removed once we support boxing everything.
+-  // See Note [named_not_supported_kernel]
+-  if (boxed_kernel_func == &named_not_supported_kernel) {
+-    named_not_supported_kernel(functor, opHandle, nullptr);  // does not return
+-  }
++template <typename... Ts>
++using can_box_all = guts::conjunction<can_box<Ts>...>;
+ 
+-  TORCH_INTERNAL_ASSERT(false, "Tried to call KernelFunction::call() for a kernel that only has a boxed kernel and doesn't support calling from an unboxed API yet.");
+-}
++// an unboxable result is one that can be extracted from an IValue
++template <typename T>
++using can_unbox =
++  guts::conjunction<
++    guts::disjunction<
++      has_ivalue_to<T>,
++      // void returns are ok
++      std::is_same<void, T>
++    >,
++    guts::negation<std::is_lvalue_reference<T>>
++  >;
+ 
+-// SFINAE version for ops with returns
+-template<class Result, class... Args>
+-std::enable_if_t<supports_boxing<Result, Args...>::value && !std::is_same<void, Result>::value, Result>
+-boxAndCallBoxedFunc(KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func, OperatorKernel* functor, const OperatorHandle& opHandle, Args... args) {
++//
++// boxArgs - utility for pushing unboxed args onto IValue stack
++//
++template <class... Args>
++torch::jit::Stack boxArgs(Args... args) {
+   // TODO Reuse stack vector instead of allocating?
+   torch::jit::Stack stack;
++  stack.reserve(sizeof...(Args));
+   torch::jit::push(stack, std::forward<Args>(args)...);
++  return stack;
++}
+ 
+-  (*boxed_kernel_func)(functor, opHandle, &stack);
++//
++// PopResult is a helper class whose specializations handle popping single and
++// multiple return values, respectively.
++//
++template <class Result>
++struct PopResult final {
++  static Result call(Stack& stack) {
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(
++      stack.size() == 1,
++      "Boxed kernel was expected to return one value on the stack, ",
++      "but instead pushed ", stack.size(), " values."
++    );
++    return std::move(stack[0]).to<Result>();
++  }
++};
+ 
+-  TORCH_INTERNAL_ASSERT(stack.size() == 1, "A boxed kernel should only push one return to the stack");
+-  return std::move(stack[0]).to<Result>();
+-}
++template <class... Types>
++struct PopResult<std::tuple<Types...>> final {
++  using Result = std::tuple<Types...>;
+ 
+-// SFINAE version for ops without returns
+-template<class Result, class... Args>
+-std::enable_if_t<supports_boxing<Result, Args...>::value && std::is_same<void, Result>::value, Result>
+-boxAndCallBoxedFunc(KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func, OperatorKernel* functor, const OperatorHandle& opHandle, Args... args) {
+-  // TODO Reuse stack vector instead of allocating?
+-  torch::jit::Stack stack;
+-  torch::jit::push(stack, std::forward<Args>(args)...);
++  static Result call(Stack& stack) {
++    // for tuple return types, boxed kernel has pushed multiple values onto the stack
++    constexpr int RetCount = sizeof...(Types);
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(
++      stack.size() == RetCount,
++      "Boxed kernel was expected to return ", RetCount, " values on the stack, ",
++      "but instead pushed ", stack.size(), " values."
++    );
++    return pop_to_tuple_impl(stack, std::make_index_sequence<RetCount>());
++  }
++private:
++  // note: this has been moved into its own helper only to avoid a parse error on `indices` otherwise.
++  // I'm sure there's an incantation that slips it past the parser but eh
++  template <size_t... indices>
++  static Result pop_to_tuple_impl(Stack& stack, std::index_sequence<indices...>) {
++    return std::make_tuple((std::move(stack[indices]).to<Types>())...);
++  }
++};
+ 
+-  (*boxed_kernel_func)(functor, opHandle, &stack);
++//
++// BoxedKernelWrapper
++//
++// For a given function type FT, BoxedKernelWrapper<FT> implements
++// a `call` method that
++// - takes a boxed kernel and unboxed arguments as specified by FT,
++// - calls `boxArgs` to box the arguments
++// - calls the boxed kernel
++// - unboxes and returns the result
++//
++// The partial specializations below handle various cases: in
++// particular, not all types appearing in op signatures are supported,
++// and ops returning references have nonstandard wrapper implementations.
++//
++
++// 1. The base specialization of BoxedKernelWrapper should never be instantiated.
++// A "no call method defined on BoxedKernelWrapper" compile error means that
++// an op signature has failed to trigger any of the partial specializations
++// that follow this one.
++//
++template <class FuncType, class Enable = void>
++struct BoxedKernelWrapper {
++  // The reason we're not just doing straight up static_assert(false, ...) here:
++  // Basically, the way to make sure a static_assert only fires if a template
++  // is actually instantiated (rather than every time the file is parsed) is to use
++  // template parameters in the expression, e.g. FuncType here. However, since
++  // `sizeof(FuncType) != sizeof(FuncType)` is always false, this has the same
++  // effect.
++  static_assert(sizeof(FuncType) != sizeof(FuncType),
++     "Function signature contains one or more unsupported parameter and/or return types. "
++     "Look for a nearby error like "
++     "\"'call' is not a member of 'c10::impl::BoxedKernelWrapper<(your function type), void>'\" "
++     "- (your function type) is the unsupported signature.");
++};
++
++//
++// 2.a. Supported signatures, other than those involving non-const Tensor refs -
++// i.e., "functional" ops.
++//
++
++template <class Result, class... Args>
++struct BoxedKernelWrapper<
++  Result(Args...),
++  std::enable_if_t<
++    can_box_all<Args...>::value && can_unbox<Result>::value && !is_tuple_of_mutable_tensor_refs<Result>::value,
++    void
++  >
++> {
++  static Result call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    Args... args
++  ) {
++    LOG(INFO) << "successful boxing 2.a for Result(Args...) where Result can be unboxed" <<std::endl;
++    torch::jit::Stack stack = boxArgs<Args...>(std::forward<Args>(args)...);
++    (*boxed_kernel_func)(functor, opHandle, &stack);
++
++    return guts::if_constexpr<!std::is_same<void, Result>::value>(
++      [&] (auto delay_check) {
++        // op has pushed one or more values onto the stack.
++        return delay_check(PopResult<Result>::call(stack));
++      },
++      [&] {
++        // op returns void, boxed kernel has pushed nothing onto stack.
++        TORCH_INTERNAL_ASSERT_DEBUG_ONLY(
++          stack.size() == 0,
++          "Boxed kernel was expected to return no values on the stack, ",
++          "but instead returned ", stack.size(), " values."
++        );
++      }
++    );
++  }
++};
++
++// 2.b unsuccessful boxing for Result(Args...) where Result can be unboxed
++template <class Result, class... Args>
++struct BoxedKernelWrapper<
++  Result(Args...),
++  std::enable_if_t<
++    !can_box_all<Args...>::value && can_unbox<Result>::value && !is_tuple_of_mutable_tensor_refs<Result>::value,
++    void
++  >
++> {
++  static Result call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    Args... args
++  ) {
++      LOG(INFO) << "unsuccessful boxing 2.b for Result(Args...) where Result can be unboxed" <<std::endl;
++      Result fakeResult;
++      if (boxed_kernel_func == &named_not_supported_kernel) {
++        named_not_supported_kernel(functor, opHandle, nullptr);  // does not return
++      }
++
++      TORCH_INTERNAL_ASSERT_DEBUG_ONLY(false, "not all arguments can be boxed for Result(Args...) where Result can be unboxed");
++
++      //static_assert(0, "not all arguments can be boxed for Result(Args...) where Result can be unboxed");
++      return fakeResult; // fake return to gratify the compiler
++
++
++
++  }
++};
++
++
++//
++// 3.a in-place ops take a single non-const Tensor reference
++// as their first argument, and return it.
++//
++// Note: all signatures matching this pattern are are assumed to be for such ops.
++// Because of this, the generated BoxedKernelWrapper specializations simply
++// return the in-place argument.
++//
++
++template <class... OtherArgs>
++struct BoxedKernelWrapper<
++  at::Tensor&(at::Tensor&, OtherArgs...),
++  std::enable_if_t<can_box_all<OtherArgs...>::value, void>
++> {
++  static at::Tensor& call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    at::Tensor& outArg, OtherArgs... otherArgs
++  ) {
++    LOG(INFO) << "successful boxing 3.a for mutable inplace call Tensor&(Tensor&, OtherArgs...)" <<std::endl;
++    torch::jit::Stack stack = boxArgs<at::Tensor&, OtherArgs...>(outArg, std::forward<OtherArgs>(otherArgs)...);
++    (*boxed_kernel_func)(functor, opHandle, &stack);
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(
++      stack.size() == 1,
++      "Boxed kernel was expected to return a single value on the stack, ",
++      "but instead returned ", stack.size(), " values."
++    );
++
++    return outArg;
++  }
++};
++
++// 3.b. the unsuccessful boxing for mutable inplace call
++template <class... OtherArgs>
++struct BoxedKernelWrapper<
++  at::Tensor&(at::Tensor&, OtherArgs...),
++  std::enable_if_t<!can_box_all<OtherArgs...>::value, void>
++> {
++  static at::Tensor& call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    at::Tensor& outArg, OtherArgs... otherArgs
++  ) {
++    LOG(INFO) << "unsuccessful boxing 3.b for mutable inplace call Tensor&(Tensor&, OtherArgs...)" <<std::endl;
++    // static_assert(0, "not all arguments can be boxed for at::Tensor&(at::Tensor&, OtherArgs...)");
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(false, "not all arguments can be boxed for at::Tensor&(at::Tensor&, OtherArgs...)");
++    return outArg;
++  }
++};
++
++
++//
++// 3.5a. In-process migration to make in-place ops take and return
++// const references instead.
++template <class... OtherArgs>
++struct BoxedKernelWrapper<
++  const at::Tensor&(const at::Tensor&, OtherArgs...),
++  std::enable_if_t<can_box_all<OtherArgs...>::value, void>
++> {
++  static const at::Tensor& call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    const at::Tensor& outArg, OtherArgs... otherArgs
++  ) {
++    LOG(INFO) << "successful boxing 3.5a for immutable inplace call const Tensor&(const Tensor&, OtherArgs...)" <<std::endl;
++    torch::jit::Stack stack = boxArgs(outArg, otherArgs...);
++    (*boxed_kernel_func)(functor, opHandle, &stack);
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(
++      stack.size() == 1,
++      "Boxed kernel was expected to return a single value on the stack, ",
++      "but instead returned ", stack.size(), " values."
++    );
++
++    return outArg;
++  }
++};
++
++// 3.5b. the unsuccessful boxing for immutable inplace call
++template <class... OtherArgs>
++struct BoxedKernelWrapper<
++  const at::Tensor&(const at::Tensor&, OtherArgs...),
++  std::enable_if_t<!can_box_all<OtherArgs...>::value, void>
++> {
++  static const at::Tensor& call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    const at::Tensor& outArg, OtherArgs... otherArgs
++  ) {
++    LOG(INFO) << "unsuccessful boxing 3.5b for immutable inplace call const Tensor&(const Tensor&, OtherArgs...)" <<std::endl;
++    // static_assert(0, "not all arguments can be boxed for const at::Tensor&(const at::Tensor&, OtherArgs...)");
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(false, "not all arguments can be boxed for const at::Tensor&(const at::Tensor&, OtherArgs...)");
++
++    return outArg;
++  }
++};
++
++//
++// 4.a. out of place ops that take a single non-const Tensor reference as their
++// final argument, and also return it.
++//
++// Note: all signatures matching this pattern are are assumed to be for such ops.
++// This assumption permits the generated BoxedKernelWrapper specializations to simply
++// return out arguments.
++//
++template <class FirstArg, class... RestArgs>
++struct BoxedKernelWrapper<
++  at::Tensor&(FirstArg, RestArgs...),
++  std::enable_if_t<
++    can_box_all<FirstArg, RestArgs...>::value
++    // this skips over in-place kernels with a non-const Tensor
++    // arg at the front, so those can unambiguously trigger the preceding specialization.
++    && !is_mutable_tensor_ref<FirstArg>::value,
++    void
++  >
++> {
++  static at::Tensor& call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    FirstArg firstArg, RestArgs... restArgs
++  ) {
++    LOG(INFO) << "successful boxing 4.a for out of place call Tensor&(FirstArg, RestArgs...)" <<std::endl;
++    torch::jit::Stack stack = boxArgs<FirstArg, RestArgs...>(std::forward<FirstArg>(firstArg), std::forward<RestArgs>(restArgs)...);
++    (*boxed_kernel_func)(functor, opHandle, &stack);
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(
++      stack.size() == 1,
++      "Boxed kernel was expected to return a single value on the stack, ",
++      "but instead returned ", stack.size(), " values."
++    );
++
++    // reusing restArgs after it has been forwarded here is ok because we know
++    // that the last element is of type `Tensor&`.
++    return std::get<sizeof...(RestArgs) - 1>(std::tuple<RestArgs...>{restArgs...});
++    // return std::move(stack[0]).to<Result>();
++
++  }
++};
++
++// 4.b unsuccessful out of place ops that has the type of at::Tensor&(FirstArg, RestArgs...)
++// where FirstArg is not Tensor&
++template <class FirstArg, class... RestArgs>
++struct BoxedKernelWrapper<
++  at::Tensor&(FirstArg, RestArgs...),
++  std::enable_if_t<
++    !can_box_all<FirstArg, RestArgs...>::value
++    // this skips over in-place kernels with a non-const Tensor
++    // arg at the front, so those can unambiguously trigger the preceding specialization.
++    && !is_mutable_tensor_ref<FirstArg>::value,
++    void
++  >
++> {
++  static at::Tensor& call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    FirstArg firstArg, RestArgs... restArgs
++  ) {
++    LOG(INFO) << "unsuccessful boxing 4.b for out of place call Tensor&(FirstArg, RestArgs...)" <<std::endl;
++    // static_assert(0, "not all arguments can be boxed for at::Tensor&(FirstArg, RestArgs...)");
++    // reusing restArgs after it has been forwarded here is ok because we know
++    // that the last element is of type `Tensor&`.
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(false, "not all arguments can be boxed for at::Tensor&(FirstArg, RestArgs...)");
++    return std::get<sizeof...(RestArgs) - 1>(std::tuple<RestArgs...>{restArgs...});
++  }
++};
++
++//
++// 5.a. out of place ops that take multiple non-const Tensor references as their
++// final arguments, and return them in a std::tuple.
++//
++// Note: all signatures matching this pattern are are assumed to be for such ops.
++// This assumption permits the generated BoxedKernelWrapper specializations to simply
++// return the out arguments.
++//
++template <class Result, class... Args>
++struct BoxedKernelWrapper<
++  Result(Args...),
++  std::enable_if_t<
++    can_box_all<Args...>::value && is_tuple_of_mutable_tensor_refs<Result>::value,
++    void
++  >
++> {
++  static Result call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    Args... args
++  ) {
++    LOG(INFO) << "successful boxing 5.a for out of place call std::tuple<at::Tensor...>(Args...)" <<std::endl;
++    using ArgTuple = std::tuple<Args...>;
++    constexpr int RetCount = std::tuple_size<Result>();
++
++    torch::jit::Stack stack = boxArgs<Args...>(std::forward<Args>(args)...);
++    (*boxed_kernel_func)(functor, opHandle, &stack);
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(
++      stack.size() == RetCount,
++      "Boxed kernel was expected to return ", RetCount, " values on the stack, ",
++      "but instead returned ", stack.size(), " values."
++    );
++
++    // reusing args after it has been forwarded here is ok because we know
++    // that the last RetCount elements are of type `Tensor&`.
++    // important note:
++    // in pytorch 1.8, it is auto result = guts::tuple_take<ArgTuple, RetCount>(ArgTuple{std::forward<Args>(args)...});
++    // in pytorch 1.6, it is auto result = guts::tuple_take<ArgTuple, -RetCount>(ArgTuple{std::forward<Args>(args)...});
++    // the call convention has changed since 1.6!
++    auto result = guts::tuple_take<ArgTuple, RetCount>(ArgTuple{std::forward<Args>(args)...});
++
++    return result;
++  }
++};
++
++
++// 5.b. unsuccessful out of place ops that has the type of std::tuple<at::Tensor, ...>(Args...)
++template <class Result, class... Args>
++struct BoxedKernelWrapper<
++  Result(Args...),
++  std::enable_if_t<
++      // guts::disjunction<guts::negation<is_all_complete<typename WieldExtractor<Args>::type...>>, guts::negation<can_box_all<Args...>>>::value && is_tuple_of_mutable_tensor_refs<Result>::value,
++      is_tuple_of_mutable_tensor_refs<Result>::value && is_all_complete<typename WieldExtractor<Args>::type...>::value && !can_box_all<Args...>::value,
++    void
++  >
++> {
++  static Result call(
++    KernelFunction::InternalBoxedKernelFunction* boxed_kernel_func,
++    OperatorKernel* functor,
++    const OperatorHandle& opHandle,
++    Args... args
++  ) {
++    LOG(INFO) << "unsuccessful boxing 5.a for out of place call std::tuple<at::Tensor...>(Args...)" <<std::endl;
++    using ArgTuple = std::tuple<Args...>;
++    constexpr int RetCount = std::tuple_size<Result>();
++    TORCH_INTERNAL_ASSERT_DEBUG_ONLY(false, "not all arguments can be boxed for std::tuple<at::Tensor, ...>(Args...)");
++    // return std::decay_t<Result>();
++    auto result = guts::tuple_take<ArgTuple, RetCount>(ArgTuple{std::forward<Args>(args)...});
++    return result;
++
++  }
++};
+ 
+-  TORCH_INTERNAL_ASSERT(stack.size() == 0, "A boxed kernel returned a value but when we called it with KernelFunction::call, we expected it to return void.");
+-}
+ 
+ }
+ }
++
+diff --git a/aten/src/ATen/core/dispatch/DispatchTable.h b/aten/src/ATen/core/dispatch/DispatchTable.h
+index 7ec7fe531f..d9c26f58fc 100644
+--- a/aten/src/ATen/core/dispatch/DispatchTable.h
++++ b/aten/src/ATen/core/dispatch/DispatchTable.h
+@@ -84,7 +84,10 @@ class DispatchTable final {
+   : kernels_()
+   , catchallKernel_()
+   , dispatchKeyExtractor_(DispatchKeyExtractor::make(schema))
+-  , operatorName_(schema.operator_name()) {}
++  , operatorName_(schema.operator_name())
++  , isBackendSelected_(false)
++  , isDispatchInvertible_(false)
++  , isFallbackTopPriority_(false) {}
+ 
+   // a dispatch table may be default constructed with only an
+   // operator name.  Such a dispatch table is not callable until
+@@ -93,7 +96,11 @@ class DispatchTable final {
+   : kernels_()
+   , catchallKernel_()
+   , dispatchKeyExtractor_(DispatchKeyExtractor::makeUninitialized())
+-  , operatorName_(std::move(op_name)) {}
++  , operatorName_(std::move(op_name))
++  //, isCatchAllOp_(false)
++  , isBackendSelected_(false)
++  , isDispatchInvertible_(false)
++  , isFallbackTopPriority_(false) {}
+ 
+   /**
+    * Register a kernel in the table at some dispatch key.
+@@ -133,6 +140,7 @@ class DispatchTable final {
+       kernel.setManuallyBoxedKernel_(*manuallyBoxedKernel_);
+     }
+     catchallKernel_ = std::move(kernel);
++    //setIsCatchAllOp(true); // we don't need to set the same to false in removeCatchallKernel because the order does not make difference of the catchallKernel_ are deregistered
+   }
+ 
+   /**
+@@ -230,12 +238,41 @@ class DispatchTable final {
+     return manuallyBoxedKernel_;
+   }
+ 
++  void setIsBackendSelected(bool isBackendSelected)
++  {
++    isBackendSelected_ = isBackendSelected;
++  }
++
++  void setIsDispatchInvertible(bool isDispatchInvertible)
++  {
++    isDispatchInvertible_ = isDispatchInvertible;
++  }
++
++  void setIsFallbackTopPriority(bool isFallbackTopPriority)
++  {
++    isFallbackTopPriority_ = isFallbackTopPriority;
++  }
++
++  bool getInvertDispatchOrder() const
++  {
++    return isBackendSelected_ || isDispatchInvertible_;
++  }
++
++  bool getIsFallbackTopPriority() const
++  {
++    return isFallbackTopPriority_;
++  }
++
++
+ private:
+ 
+   impl::KernelFunctionTable kernels_;
+   KernelFunction catchallKernel_;
+   DispatchKeyExtractor dispatchKeyExtractor_;
+   OperatorName operatorName_;
++  bool isBackendSelected_;
++  bool isDispatchInvertible_;
++  bool isFallbackTopPriority_;
+ 
+   // This manuallyBoxedKernel_ member is a temporary hack that allows generated_unboxing_wrappers.cpp to register its codegen'ed
+   // unboxing wrapper for aten operators. We still need those for some operators because not all work
+diff --git a/aten/src/ATen/core/dispatch/Dispatcher.cpp b/aten/src/ATen/core/dispatch/Dispatcher.cpp
+index aa9214000d..c820472e93 100644
+--- a/aten/src/ATen/core/dispatch/Dispatcher.cpp
++++ b/aten/src/ATen/core/dispatch/Dispatcher.cpp
+@@ -1,6 +1,8 @@
+ #include <ATen/core/dispatch/Dispatcher.h>
+ #include <list>
+ #include <sstream>
++#include <iostream>
++#include <cstdlib>
+ 
+ namespace c10 {
+ 
+@@ -49,6 +51,28 @@ C10_EXPORT Dispatcher& Dispatcher::singleton() {
+   return _singleton;
+ }
+ 
++bool Dispatcher::enableFallbackToCPU() const
++{
++  static bool enable = readFallbackFromEnv();
++  return enable;
++}
++
++bool Dispatcher::readFallbackFromEnv() const
++{
++  const char* env_enable_fallback = getenv("ENABLE_FALLBACK_TO_CPU");
++  if (env_enable_fallback == nullptr) {
++    return false; // disable fallback-to-cpu by default
++  }
++  std::string str(env_enable_fallback);
++  std::istringstream ss(str);
++  bool enable;
++  if (!(ss >> enable)) {
++    // disable fallback-to-cpu by default
++    enable = false;
++  }
++  return enable;
++}
++
+ c10::optional<OperatorHandle> Dispatcher::findOp(const OperatorName& overload_name) {
+   return operatorLookupTable_.read([&] (const ska::flat_hash_map<OperatorName, OperatorHandle>& operatorLookupTable) -> c10::optional<OperatorHandle> {
+     auto found = operatorLookupTable.find(overload_name);
+diff --git a/aten/src/ATen/core/dispatch/Dispatcher.h b/aten/src/ATen/core/dispatch/Dispatcher.h
+index 1264941625..0b9f3d9704 100644
+--- a/aten/src/ATen/core/dispatch/Dispatcher.h
++++ b/aten/src/ATen/core/dispatch/Dispatcher.h
+@@ -216,6 +216,8 @@ private:
+   [[noreturn]] static void reportError(const DispatchTable& dispatchTable, DispatchKey dispatchKey);
+ 
+   const KernelFunction& dispatch_(const DispatchTable& dispatchTable, DispatchKey dispatch_key) const;
++  bool enableFallbackToCPU() const;
++  bool readFallbackFromEnv() const;
+ 
+   std::list<OperatorDef> operators_;
+   LeftRight<ska::flat_hash_map<OperatorName, OperatorHandle>> operatorLookupTable_;
+@@ -357,16 +359,39 @@ inline void Dispatcher::callBoxed(const OperatorHandle& op, Stack* stack) const
+   kernel.callBoxed(op, stack);
+ }
+ 
+-inline const KernelFunction& Dispatcher::dispatch_(const DispatchTable& dispatchTable, DispatchKey dispatchKey) const {
++inline const KernelFunction& Dispatcher::dispatch_(const DispatchTable & dispatchTable, DispatchKey dispatchKey) const {
+   const KernelFunction* backendKernel = dispatchTable.lookup(dispatchKey);
+ 
++  if(enableFallbackToCPU() && dispatchKey==DispatchKey::MLU && dispatchTable.getIsFallbackTopPriority()) {
++    const auto& backendFallbackKernel = backendFallbackKernels_[dispatchKey];
++    if (backendFallbackKernel.isValid()) {
++      return backendFallbackKernel;
++    }
++  }
++
+   if (nullptr != backendKernel) {
+     return *backendKernel;
+   }
+ 
+-  const auto& backendFallbackKernel = backendFallbackKernels_[dispatchKey];
+-  if (backendFallbackKernel.isValid()) {
+-    return backendFallbackKernel;
++  if(enableFallbackToCPU() && dispatchKey==DispatchKey::MLU && dispatchTable.getInvertDispatchOrder())
++  {
++      const KernelFunction* catchallKernel = dispatchTable.lookupCatchallKernel();
++      if (C10_LIKELY(nullptr != catchallKernel)) {
++        return *catchallKernel;
++      }
++
++      const auto& backendFallbackKernel = backendFallbackKernels_[dispatchKey];
++      if (backendFallbackKernel.isValid()) {
++        return backendFallbackKernel;
++      }
++  }
++
++  // skip the fallback kernel for MLU when enableFallbackToCPU()==false, as if it were not registered at all!
++  if(dispatchKey!=DispatchKey::MLU || (enableFallbackToCPU() && !dispatchTable.getInvertDispatchOrder())) {
++    const auto& backendFallbackKernel = backendFallbackKernels_[dispatchKey];
++    if (backendFallbackKernel.isValid()) {
++      return backendFallbackKernel;
++    }
+   }
+ 
+   const KernelFunction* catchallKernel = dispatchTable.lookupCatchallKernel();
+diff --git a/aten/src/ATen/core/dispatch/OperatorEntry.cpp b/aten/src/ATen/core/dispatch/OperatorEntry.cpp
+index 70f006fbc9..56d406ec64 100644
+--- a/aten/src/ATen/core/dispatch/OperatorEntry.cpp
++++ b/aten/src/ATen/core/dispatch/OperatorEntry.cpp
+@@ -142,18 +142,27 @@ void OperatorEntry::updateDispatchTable_(c10::optional<DispatchKey> dispatch_key
+   if (dispatch_key.has_value()) {
+     if (k == kernels_.end()) {
+       dispatchTable_.removeKernelIfExists(*dispatch_key);
++      if(dispatch_key==DispatchKey::BackendSelect)
++        dispatchTable_.setIsBackendSelected(false);
+     } else {
+       dispatchTable_.setKernel(*dispatch_key, k->second.front().kernel);
++      if(dispatch_key==DispatchKey::BackendSelect)
++        dispatchTable_.setIsBackendSelected(true);
+     }
+-  } else {
++  } else { // catchAll kernels
+     if (k == kernels_.end()) {
+       dispatchTable_.removeCatchallKernel();
+     } else {
+       dispatchTable_.setCatchallKernel(k->second.front().kernel);
+     }
+   }
++  if(is_dispatch_invertible_op(operator_name()))
++    dispatchTable_.setIsDispatchInvertible(true);
++  if(is_fallback_top_priority_op(operator_name()))
++    dispatchTable_.setIsFallbackTopPriority(true);
+ }
+ 
++
+ void OperatorEntry::checkInvariants() const {
+   if (schema_) {
+     TORCH_INTERNAL_ASSERT(schema_->operator_name() == name_);
+diff --git a/aten/src/ATen/core/dispatch/OperatorEntry.h b/aten/src/ATen/core/dispatch/OperatorEntry.h
+index 057eddb93f..56d347dae2 100644
+--- a/aten/src/ATen/core/dispatch/OperatorEntry.h
++++ b/aten/src/ATen/core/dispatch/OperatorEntry.h
+@@ -5,6 +5,18 @@
+ #include <ATen/core/dispatch/CppSignature.h>
+ #include <ATen/core/dispatch/RegistrationHandleRAII.h>
+ #include <list>
++#include <unordered_set>
++#include <functional>
++#include <iostream>
++#include <fstream>
++#include <iterator>
++#include <vector>
++#include <string>
++#include <cstring>
++#include <algorithm>
++#include <unistd.h>
++#include <stdio.h>
++#include <limits.h>
+ 
+ namespace c10 {
+ namespace impl {
+@@ -116,6 +128,96 @@ public:
+     );
+   }
+ 
++  
++  std::unordered_set<std::string> getDispatchInvertOps()
++  {
++    char filename[] = "dispatch_invert_ops.cfg";
++    std::unordered_set<std::string> ops {
++      // operators related to device transmisssion
++      "aten::contiguous",
++      "aten::to",
++      // simple operators which need no device info
++      "aten::output_nr",
++      "aten::ones",
++      "aten::zeros",
++      "aten::size",
++      "aten::is_leaf",
++      "aten::t",
++      // excuting svd in fallback causes parameter nuumber mismatch in stack
++      "aten::svd",
++      // the entries below are from pytorch/torch/csrc/jit/passes/shape_analysis.cpp
++      "aten::empty_like",
++      "aten::full_like",
++      "aten::ones_like",
++      "aten::rand_like",
++      "aten::randint_like",
++      "aten::randn_like",
++      "aten::zeros_like",
++      // used by batchnorm
++      "aten::set_data",
++      // used by instancenorm
++      "aten::_version",
++      // used by instancenorm
++      "aten::narrow",
++      // op and func: TestAndOp, test_and
++      "aten::result_type",
++      // op and func: TestConvOps, test_online_convtrans2d
++      "aten::item",
++      // op and func: TestClampOp, test_clamp
++      "aten::is_complex",
++      // op and func: TestMatmulOp, test_matmul
++      "aten::_unsafe_view"
++    };
++
++
++    std::ifstream ifs(filename);
++    if (ifs) {
++        std::copy_if(std::istream_iterator<std::string>(ifs), 
++                std::istream_iterator<std::string>(),
++                std::inserter(ops, ops.end()),
++                [](const std::string& str) { return str.c_str()[0]!= '#'; });
++    }
++
++    return ops;
++  } 
++
++
++  bool is_dispatch_invertible_op(const OperatorName& opName) {
++
++    static std::unordered_set<std::string> opSet = getDispatchInvertOps();
++    if(opSet.count(opName.name.data()) != 0)
++      return true;
++    if(opSet.count("all") != 0)
++      return true;
++    return false;
++  }
++  
++  std::unordered_set<std::string> getFallbackTopPriorityOps()
++  {
++    char filename[] = "fallback_top_priority_ops.cfg";
++    std::unordered_set<std::string> ops;
++
++    std::ifstream ifs(filename);
++    if (ifs) {
++        std::copy_if(std::istream_iterator<std::string>(ifs), 
++                std::istream_iterator<std::string>(),
++                std::inserter(ops, ops.end()),
++                [](const std::string& str) { return str.c_str()[0]!= '#'; });
++    }
++    return ops;
++  } 
++
++
++  bool is_fallback_top_priority_op(const OperatorName& opName) {
++
++    static std::unordered_set<std::string> opSet = getFallbackTopPriorityOps();
++    if(opSet.count(opName.name.data()) != 0)
++      return true;
++    if(opSet.count("all") != 0)
++      return true;
++    return false;
++  }
++
+ private:
+ 
+   OperatorName name_;
+diff --git a/c10/util/Metaprogramming.h b/c10/util/Metaprogramming.h
+index 27775b9f93..bf5fa1c8a5 100644
+--- a/c10/util/Metaprogramming.h
++++ b/c10/util/Metaprogramming.h
+@@ -129,4 +129,81 @@ decltype(auto) filter_map(const Mapper& mapper, Args&&... args) {
+   return detail::filter_map_<ResultType, num_results>::template call<Condition, Mapper, Args...>(mapper, std::make_index_sequence<num_results>(), std::forward<Args>(args)...);
+ }
+ 
++
++/**
++ * make_offset_index_sequence<Start, N>
++ * Like make_index_sequence<N>, but starting from Start instead of 0.
++ *
++ * Example:
++ *  make_offset_index_sequence<10, 3> == std::index_sequence<10, 11, 12>
++ */
++template <size_t Start, size_t N, size_t... Is>
++struct make_offset_index_sequence_impl
++    : make_offset_index_sequence_impl<Start, N - 1, Start + N - 1, Is...> {
++  static_assert(
++      static_cast<int>(Start) >= 0,
++      "make_offset_index_sequence: Start < 0");
++  static_assert(static_cast<int>(N) >= 0, "make_offset_index_sequence: N < 0");
++};
++
++template <size_t Start, size_t... Is>
++struct make_offset_index_sequence_impl<Start, 0, Is...> {
++  typedef std::index_sequence<Is...> type;
++};
++
++template <size_t Start, size_t N>
++using make_offset_index_sequence =
++    typename make_offset_index_sequence_impl<Start, N>::type;
++
++/**
++ * Use tuple_elements to extract a position-indexed subset of elements
++ * from the argument tuple into a result tuple.
++ *
++ * Example:
++ *  std::tuple<int, const char*, double> t = std::make_tuple(0, "HEY", 2.0);
++ *  std::tuple<int, double> result = tuple_elements(t, std::index_sequence<0,
++ * 2>());
++ */
++template <class Tuple, size_t... Is>
++constexpr auto tuple_elements(Tuple t, std::index_sequence<Is...>) {
++  return std::tuple<std::tuple_element_t<Is, Tuple>...>(std::get<Is>(t)...);
++}
++
++/**
++ * Use tuple_take to extract the first or last n elements from the argument
++ * tuple into a result tuple.
++ *
++ * Example:
++ *  std::tuple<int, const char*, double> t = std::make_tuple(0, "HEY", 2.0);
++ *  std::tuple<int, const char*> first_two = tuple_take<decltype(t), 2>(t);
++ *  std::tuple<const char*, double> last_two = tuple_take<decltype(t), -2>(t);
++ */
++template <class Tuple, int N, class Enable = void>
++struct TupleTake {};
++
++template <class Tuple, int N>
++struct TupleTake<Tuple, N, std::enable_if_t<N >= 0, void>> {
++  static auto call(Tuple t) {
++    constexpr size_t size = std::tuple_size<Tuple>();
++    static_assert(N <= size, "tuple_take: N > size");
++    return tuple_elements(t, std::make_index_sequence<N>{});
++  }
++};
++
++template <class Tuple, int N>
++    struct TupleTake < Tuple,
++    N, std::enable_if_t<N<0, void>> {
++  static auto call(Tuple t) {
++    constexpr size_t size = std::tuple_size<Tuple>();
++    static_assert(-N <= size, "tuple_take: -N > size");
++    return tuple_elements(t, make_offset_index_sequence<size + N, -N>{});
++  }
++};
++
++template <class Tuple, int N>
++auto tuple_take(Tuple t) {
++  return TupleTake<Tuple, N>::call(t);
++};
++
++
+ }}
+diff --git a/c10/util/TypeList.h b/c10/util/TypeList.h
+index 7a05aaf094..5bfeaa3065 100644
+--- a/c10/util/TypeList.h
++++ b/c10/util/TypeList.h
+@@ -149,6 +149,26 @@ struct contains<typelist<Head, Tail...>, Type, std::enable_if_t<!std::is_same<He
+ template<class TypeList, class Type>
+ using contains = typename detail::contains<TypeList, Type>::type;
+ 
++/**
++ * Returns true iff the type trait is true for all types in the type list
++ * Examples:
++ *   true   ==  all<std::is_reference, typelist<int&, const float&&, const
++ * MyClass&>>::value false  ==  all<std::is_reference, typelist<int&, const
++ * float&&, MyClass>>::value
++ */
++template <template <class> class Condition, class TypeList>
++struct all {
++  static_assert(
++      false_t<TypeList>::value,
++      "In typelist::all<Condition, TypeList>, the TypeList argument must be typelist<...>.");
++};
++template <template <class> class Condition, class... Types>
++struct all<Condition, typelist<Types...>>
++    : guts::conjunction<Condition<Types>...> {
++  static_assert(
++      is_type_condition<Condition>::value,
++      "In typelist::all<Condition, TypeList>, the Condition argument must be a condition type trait, i.e. have a static constexpr bool ::value member.");
++};
+ 
+ /**
+  * Returns true iff the type trait is true for all types in the type list

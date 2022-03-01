@@ -1,0 +1,40 @@
+diff --git a/torch/csrc/jit/serialization/pickler.cpp b/torch/csrc/jit/serialization/pickler.cpp
+index 552ff8c..b66fbce 100644
+--- a/torch/csrc/jit/serialization/pickler.cpp
++++ b/torch/csrc/jit/serialization/pickler.cpp
+@@ -348,6 +348,9 @@ void Pickler::pushLiteralTensor(const IValue& ivalue) {
+   // The format here is the same one used by `torch.save()`. The code for the
+   // format can be found in `torch/serialization.py`.
+   auto tensor = ivalue.toTensor();
++  if(tensor.device().type() == c10::kMLU){
++    tensor = tensor.to(c10::kCPU, tensor.scalar_type());
++  }
+   bool quantized = tensor.is_quantized();
+   // The arguments to this function are:
+   //    storage, storage_offset, size, stride, requires_grad, backward_hooks
+@@ -472,7 +475,11 @@ void Pickler::pushLong(const std::string& data) {
+ 
+ void Pickler::pushTensorReference(const IValue& ivalue) {
+   pushGlobal("torch.jit._pickle", "build_tensor_from_id");
+-  tensor_table_->push_back(ivalue.toTensor());
++  auto t = ivalue.toTensor();
++  if(t.device().type() == c10::kMLU){
++    t = t.to(c10::kCPU, t.scalar_type());
++  }
++  tensor_table_->push_back(t);
+   int64_t tensor_id = tensor_table_->size() - 1;
+   // Reduce arguments are spread (e.g. `*args`) before calling the global,
+   // so wrap in a tuple
+diff --git a/torch/csrc/jit/serialization/unpickler.cpp b/torch/csrc/jit/serialization/unpickler.cpp
+index d85cce7..f93ea26 100644
+--- a/torch/csrc/jit/serialization/unpickler.cpp
++++ b/torch/csrc/jit/serialization/unpickler.cpp
+@@ -421,6 +421,8 @@ PickleOpCode Unpickler::readInstruction() {
+ 
+       if (device.type() == DeviceType::CUDA) {
+         tensor = tensor.to(device, tensor.scalar_type());
++      } else if (device.type() == DeviceType::MLU) {
++        tensor = tensor.to(device, tensor.scalar_type());
+       } else if (device.type() != DeviceType::CPU) {
+         AT_ERROR(
+             "supported devices include CPU and CUDA, however got ",
