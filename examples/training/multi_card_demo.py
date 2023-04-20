@@ -33,7 +33,7 @@ def do_broadcast(rank, world_size):
     ct.set_device(rank)  # assign a card for every process, rank is the card id
 
     # initialize the process group
-    dist.init_process_group(backend='cncl', init_method=INIT_METHOD,
+    dist.init_process_group(backend='cncl', init_method=INIT_METHOD, # 此处的backend是否应是nccl？
                             rank=rank, world_size=world_size)
 
     # broadcast operation
